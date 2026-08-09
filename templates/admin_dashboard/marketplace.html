@@ -1,0 +1,79 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Marketplace Moderation | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Marketplace Opportunities</h1>
+      <p class="text-xs text-slate-500 mt-1">Review and moderate member collaboration opportunities.</p>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="card-admin p-4">
+    <form method="get" class="flex items-center gap-3">
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search by opportunity title, description or creator email..."
+        class="w-full max-w-md px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+      <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors">
+        Search
+      </button>
+      {% if search_query %}
+        <a href="{% url 'admin_dashboard:marketplace_list' %}" class="text-xs text-slate-500 hover:text-slate-700 font-semibold">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Collaborations Table -->
+  <div class="card-admin overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+          <tr>
+            <th class="p-4">Opportunity Title</th>
+            <th class="p-4">Creator</th>
+            <th class="p-4">Project Type</th>
+            <th class="p-4">Budget</th>
+            <th class="p-4">Status</th>
+            <th class="p-4">Created Date</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for col in collaborations %}
+            <tr class="hover:bg-slate-50/50">
+              <td class="p-4 font-bold text-slate-900">
+                <a href="{% url 'marketplace:collaboration_detail' pk=col.pk %}" target="_blank" class="hover:text-emerald-600">
+                  {{ col.title }} ↗
+                </a>
+              </td>
+              <td class="p-4">
+                <p class="font-bold text-slate-800">{{ col.creator.first_name }} {{ col.creator.last_name }}</p>
+                <p class="text-[11px] text-slate-400">{{ col.creator.email }}</p>
+              </td>
+              <td class="p-4"><span class="px-2 py-0.5 rounded bg-indigo-50 font-semibold text-indigo-700">{{ col.get_project_type_display }}</span></td>
+              <td class="p-4"><span class="px-2 py-0.5 rounded bg-emerald-50 font-semibold text-emerald-700">{{ col.get_budget_type_display }}</span></td>
+              <td class="p-4"><span class="px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-700">{{ col.get_status_display }}</span></td>
+              <td class="p-4 text-slate-500">{{ col.created_at|date:"M d, Y" }}</td>
+              <td class="p-4 text-right">
+                <form id="delete-admin-opp-{{ col.pk }}" action="{% url 'admin_dashboard:marketplace_delete' pk=col.pk %}" method="post" class="inline">
+                  {% csrf_token %}
+                  <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-admin-opp-{{ col.pk }}', objectType: 'opportunity', objectTitle: '{{ col.title|escapejs }}' })"
+                    class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="p-8 text-center text-slate-400">No marketplace opportunities found matching query.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

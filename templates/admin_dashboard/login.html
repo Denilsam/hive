@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superadmin Sign In | {{ site_branding.site_name }} Portal</title>
+  <link rel="icon" href="{{ site_branding.favicon_url }}?v={{ site_branding.updated_at_timestamp }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
+    <div class="text-center space-y-2">
+      <img src="{{ site_branding.admin_logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="{{ site_branding.site_name }}" class="h-10 w-auto max-h-10 max-w-[180px] object-contain mx-auto">
+      <h1 class="text-xl font-extrabold tracking-tight text-white">Superadmin Portal</h1>
+      <p class="text-xs text-slate-400">Administrative account sign in for {{ site_branding.site_name }}</p>
+    </div>
+
+    {% if messages %}
+      <div class="space-y-2">
+        {% for message in messages %}
+          <div class="p-3 rounded-xl text-xs font-semibold {% if message.tags == 'error' %}bg-rose-950/80 border border-rose-800 text-rose-300{% else %}bg-indigo-950/80 border border-indigo-800 text-indigo-300{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'admin_dashboard:admin_login' %}" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">Superadmin Email</label>
+        <input type="email" name="email" value="{{ email|default:'' }}" required placeholder="admin@hive.com"
+          class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-bold text-slate-300">Password</label>
+          <a href="{% url 'admin_dashboard:admin_forgot_password' %}" class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">Forgot Password?</a>
+        </div>
+        <input type="password" name="password" required placeholder="••••••••••••"
+          class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold shadow-lg shadow-indigo-600/30 transition-colors">
+        Sign In to Admin Dashboard
+      </button>
+    </form>
+
+    <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+      <a href="{% url 'home' %}" class="font-semibold text-slate-500 hover:text-slate-300 transition-colors">← Back to Hive App</a>
+      <a href="{% url 'admin_dashboard:admin_forgot_password' %}" class="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">Forgot Password?</a>
+    </div>
+  </div>
+</body>
+</html>

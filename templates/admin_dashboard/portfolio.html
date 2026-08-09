@@ -1,0 +1,77 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Portfolio Moderation | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Portfolio Projects</h1>
+      <p class="text-xs text-slate-500 mt-1">Review and moderate member portfolio showcase projects.</p>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="card-admin p-4">
+    <form method="get" class="flex items-center gap-3">
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search by title, description or owner email..."
+        class="w-full max-w-md px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500">
+      <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors">
+        Search
+      </button>
+      {% if search_query %}
+        <a href="{% url 'admin_dashboard:portfolio_list' %}" class="text-xs text-slate-500 hover:text-slate-700 font-semibold">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Projects Table -->
+  <div class="card-admin overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+          <tr>
+            <th class="p-4">Project Title</th>
+            <th class="p-4">Owner</th>
+            <th class="p-4">Category</th>
+            <th class="p-4">Visibility</th>
+            <th class="p-4">Created Date</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for project in projects %}
+            <tr class="hover:bg-slate-50/50">
+              <td class="p-4 font-bold text-slate-900">
+                <a href="{% url 'portfolio:project_detail' slug=project.slug %}" target="_blank" class="hover:text-emerald-600">
+                  {{ project.title }} ↗
+                </a>
+              </td>
+              <td class="p-4">
+                <p class="font-bold text-slate-800">{{ project.owner.first_name }} {{ project.owner.last_name }}</p>
+                <p class="text-[11px] text-slate-400">{{ project.owner.email }}</p>
+              </td>
+              <td class="p-4"><span class="px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-600">{{ project.get_category_display }}</span></td>
+              <td class="p-4"><span class="px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-600">{{ project.get_visibility_display }}</span></td>
+              <td class="p-4 text-slate-500">{{ project.created_at|date:"M d, Y" }}</td>
+              <td class="p-4 text-right">
+                <form id="delete-admin-proj-{{ project.pk }}" action="{% url 'admin_dashboard:portfolio_delete' pk=project.pk %}" method="post" class="inline">
+                  {% csrf_token %}
+                  <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-admin-proj-{{ project.pk }}', objectType: 'portfolio project', objectTitle: '{{ project.title|escapejs }}' })"
+                    class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-400">No portfolio projects found matching query.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

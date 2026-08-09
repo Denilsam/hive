@@ -1,0 +1,119 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}{{ target_user.email }} | User Management{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <!-- Back Button & Header -->
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard:user_list' %}" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900">← Back</a>
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ target_user.first_name }} {{ target_user.last_name }}</h1>
+      <p class="text-xs text-slate-500">{{ target_user.email }} • Joined {{ target_user.date_joined|date:"M d, Y" }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- User Overview Card -->
+    <div class="card-admin p-5 space-y-4 lg:col-span-1">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 font-black text-lg flex items-center justify-center">
+          {{ target_user.first_name|slice:":1" }}{{ target_user.last_name|slice:":1" }}
+        </div>
+        <div>
+          <h2 class="font-extrabold text-slate-900 text-sm">{{ target_user.first_name }} {{ target_user.last_name }}</h2>
+          <p class="text-xs text-slate-500">@{{ target_user.username }}</p>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-100 pt-3 space-y-2 text-xs">
+        <div class="flex justify-between py-1 border-b border-slate-50">
+          <span class="text-slate-400">Account Type</span>
+          <span class="font-semibold text-slate-800">
+            {% if target_user.is_superuser %}
+              SUPERADMIN
+            {% elif target_user.is_staff or target_user.account_type == 'ADMIN' %}
+              ADMIN
+            {% else %}
+              {{ target_user.get_account_type_display|default:"USER" }}
+            {% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-50">
+          <span class="text-slate-400">Email Verification</span>
+          <span class="font-semibold {% if target_user.is_verified %}text-emerald-600{% else %}text-amber-600{% endif %}">
+            {% if target_user.is_verified %}Verified{% else %}Unverified{% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-50">
+          <span class="text-slate-400">Status</span>
+          <span class="font-semibold {% if target_user.is_active %}text-emerald-600{% else %}text-rose-600{% endif %}">
+            {% if target_user.is_active %}Active{% else %}Suspended / Inactive{% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-slate-400">Reports Against</span>
+          <span class="font-bold text-rose-600">{{ reports_against }}</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-3 space-y-2">
+        {% if target_user.is_active %}
+          <form id="suspend-user-form" action="{% url 'admin_dashboard:user_suspend' pk=target_user.pk %}" method="post">
+            {% csrf_token %}
+            {% if is_self %}
+              <button type="button" disabled class="w-full py-2 px-3 text-xs font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl cursor-not-allowed" title="You cannot suspend your own account.">Suspend Account</button>
+            {% else %}
+              <button type="button" onclick="openGlobalDeleteModal({ formId: 'suspend-user-form', objectType: 'user account', objectTitle: '{{ target_user.email|escapejs }}' })" class="w-full py-2 px-3 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all">Suspend Account</button>
+            {% endif %}
+          </form>
+        {% else %}
+          <form action="{% url 'admin_dashboard:user_reactivate' pk=target_user.pk %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="w-full py-2 px-3 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all">Reactivate Account</button>
+          </form>
+        {% endif %}
+
+        <form id="soft-delete-user-form" action="{% url 'admin_dashboard:user_delete' pk=target_user.pk %}" method="post">
+          {% csrf_token %}
+          {% if is_self %}
+            <button type="button" disabled class="w-full py-2 px-3 text-xs font-semibold text-slate-400 bg-slate-100 rounded-xl cursor-not-allowed" title="You cannot soft delete your own account.">Soft Delete (Deactivate)</button>
+          {% else %}
+            <button type="button" onclick="openGlobalDeleteModal({ formId: 'soft-delete-user-form', objectType: 'user account', objectTitle: '{{ target_user.email|escapejs }}' })" class="w-full py-2 px-3 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">Soft Delete (Deactivate)</button>
+          {% endif %}
+        </form>
+
+        <form id="perm-delete-user-form" action="{% url 'admin_dashboard:user_permanent_delete' pk=target_user.pk %}" method="post">
+          {% csrf_token %}
+          {% if not can_delete %}
+            <div class="p-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-semibold text-slate-500 text-center">
+              ⚠️ {{ cannot_delete_reason }}
+            </div>
+            <button type="button" disabled class="w-full py-2 px-3 text-xs font-bold text-slate-400 bg-slate-200 rounded-xl cursor-not-allowed">Permanent Delete</button>
+          {% else %}
+            <button type="button" onclick="openGlobalDeleteModal({ formId: 'perm-delete-user-form', objectType: '{% if target_user.is_superuser %}Super Admin account [{{ target_user.first_name|escapejs }} {{ target_user.last_name|escapejs }}]{% else %}user account permanently{% endif %}', objectTitle: '{{ target_user.email|escapejs }}' })" class="w-full py-2 px-3 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all">Permanent Delete</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
+    <!-- User Content & Activity -->
+    <div class="card-admin p-5 lg:col-span-2 space-y-4">
+      <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Recent User Posts</h3>
+      <div class="space-y-3">
+        {% for post in user_posts %}
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1">
+            <div class="flex justify-between text-slate-400">
+              <span>Post #{{ post.id }}</span>
+              <span>{{ post.created_at|date:"M d, H:i" }}</span>
+            </div>
+            <p class="text-slate-800 font-medium line-clamp-2">{{ post.content }}</p>
+          </div>
+        {% empty %}
+          <p class="text-xs text-slate-400">No posts submitted by this user.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

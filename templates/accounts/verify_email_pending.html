@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Email | Hive{% endblock %}
+
+{% block content_public %}
+<div class="min-h-[60vh] flex items-center justify-center bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900">
+    <div class="w-full max-w-md bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-slate-100 text-slate-800 text-center">
+        <div class="inline-flex items-center justify-center p-3.5 rounded-2xl bg-indigo-50 text-indigo-600 mb-5 border border-indigo-100 shadow-sm">
+            <!-- Shield Lock Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+        </div>
+
+        <h2 class="text-2xl font-black tracking-tight text-slate-900 mb-2">Verify Your Email</h2>
+        <p class="text-xs text-slate-600 leading-relaxed mb-6">
+            We sent a 6-digit verification code to <strong class="text-slate-900 font-bold">{{ masked_email|default:email }}</strong>
+        </p>
+
+        <!-- Messages Notification -->
+        {% if messages %}
+          <div class="mb-4 space-y-2 text-left">
+            {% for message in messages %}
+              <div class="p-3 rounded-xl border text-xs font-semibold {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800{% else %}bg-slate-50 border-slate-200 text-slate-800{% endif %}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- OTP Input Form -->
+        <form action="{% url 'accounts:verify_email_pending' %}" method="post" id="otp-form" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="email" value="{{ email }}">
+            
+            <div class="flex justify-center items-center gap-2 sm:gap-3" id="otp-inputs">
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required autofocus>
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required>
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required>
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required>
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required>
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-digit w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-black text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all" name="otp_digit" required>
+            </div>
+
+            <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-extrabold text-sm shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.01]">
+                Verify Email
+            </button>
+        </form>
+
+        <!-- Resend OTP & Change Email options -->
+        <div class="border-t border-slate-100 pt-5 mt-6 space-y-3">
+            <p class="text-xs text-slate-500">Didn't receive the code?</p>
+            <form action="{% url 'accounts:resend_verification' %}" method="post" id="resend-form" class="inline-block">
+                {% csrf_token %}
+                <input type="hidden" name="email" value="{{ email }}">
+                <button type="submit" id="resend-btn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="resend-text">Resend Code</span>
+                </button>
+            </form>
+            <div>
+              <a href="{% url 'accounts:register' %}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors">Change Email / Back to Sign Up</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const digits = document.querySelectorAll(".otp-digit");
+    const otpForm = document.getElementById("otp-form");
+
+    digits.forEach((input, index) => {
+        input.addEventListener("input", function(e) {
+            const val = e.target.value;
+            if (val.length === 1 && index < digits.length - 1) {
+                digits[index + 1].focus();
+            }
+        });
+
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Backspace" && !e.target.value && index > 0) {
+                digits[index - 1].focus();
+            }
+        });
+
+        input.addEventListener("paste", function(e) {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData("text").trim();
+            if (/^\d{6}$/.test(pasteData)) {
+                pasteData.split("").forEach((char, i) => {
+                    if (digits[i]) digits[i].value = char;
+                });
+                digits[digits.length - 1].focus();
+            }
+        });
+    });
+
+    // Cooldown Timer
+    let cooldown = parseInt("{{ cooldown_remaining|default:0 }}");
+    const resendBtn = document.getElementById("resend-btn");
+    const resendText = document.getElementById("resend-text");
+
+    function updateCooldown() {
+        if (cooldown > 0) {
+            resendBtn.disabled = true;
+            resendText.textContent = `Resend Code in ${cooldown}s`;
+            cooldown--;
+            setTimeout(updateCooldown, 1000);
+        } else {
+            resendBtn.disabled = false;
+            resendText.textContent = "Resend Code";
+        }
+    }
+    if (cooldown > 0) {
+        updateCooldown();
+    }
+});
+</script>
+{% endblock %}

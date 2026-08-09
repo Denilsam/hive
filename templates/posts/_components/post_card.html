@@ -1,0 +1,139 @@
+<article class="post-card animate-fade-up" id="post-{{ post.id }}">
+
+  <!-- Post Header -->
+  <div class="flex items-start justify-between p-4 pb-0">
+    <div class="flex items-start gap-3">
+      <!-- Profile Avatar -->
+      <a href="{% url 'profiles:profile_detail' username=post.author.username %}" class="avatar avatar-lg flex-shrink-0">
+        {% if post.author.profile.profile_image %}
+          <img src="{{ post.author.profile.profile_image.url }}" alt="{{ post.author.first_name }}">
+        {% else %}
+          <span>{{ post.author.first_name|slice:":1" }}{{ post.author.last_name|slice:":1" }}</span>
+        {% endif %}
+      </a>
+      <div>
+        <div class="flex items-center flex-wrap gap-1.5">
+          <a href="{% url 'profiles:profile_detail' username=post.author.username %}" class="text-sm font-bold text-gray-900 hover:text-emerald-600 transition-colors">
+            {{ post.author.first_name }} {{ post.author.last_name }}
+          </a>
+          {% if post.visibility != 'PUBLIC' %}
+            <span class="badge badge-neutral">{{ post.get_visibility_display }}</span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-gray-500 mt-0.5">
+          {{ post.author.profile.headline|default:"Professional on Hive"|truncatechars:55 }}
+        </p>
+        <p class="text-[10px] text-gray-400 mt-0.5">{{ post.created_at|timesince }} ago</p>
+      </div>
+    </div>
+
+    <!-- Post Actions -->
+    <div class="flex items-center gap-1 flex-shrink-0">
+      {% if request.user == post.author %}
+        <button type="button" onclick="openGlobalDeleteModal({ url: '{% url 'posts:delete' pk=post.id %}', objectType: 'post', targetElementId: 'post-{{ post.id }}' })" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete Post">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      {% endif %}
+      <a href="{% url 'posts:post_detail' pk=post.id %}" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" title="View Details">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Post Content -->
+  {% if post.content %}
+    <div class="px-4 pt-3">
+      <p id="post-content-{{ post.id }}" class="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{{ post.content }}</p>
+    </div>
+  {% endif %}
+
+  <!-- Media Container with Double-Tap Heart -->
+  {% if post.image %}
+    <div class="post-media mx-4 mt-3 rounded-xl overflow-hidden relative" onclick="openLightbox('{{ post.image.url }}')" id="media-container-{{ post.id }}">
+      <img src="{{ post.image.url }}" alt="Post media" loading="lazy">
+      <div class="double-tap-heart">
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </div>
+    </div>
+  {% endif %}
+  {% if post.video %}
+    <div class="mx-4 mt-3 rounded-xl overflow-hidden border border-gray-200 bg-black">
+      <video src="{{ post.video.url }}" autoplay loop muted playsinline controls class="w-full max-h-96 object-contain feed-video-player"></video>
+    </div>
+  {% endif %}
+
+  <!-- Engagement Counts -->
+  <div class="px-4 pt-3 pb-1 flex items-center justify-between text-xs text-gray-500 font-medium">
+    <button onclick="toggleLike({{ post.id }})" class="hover:underline">
+      <span id="likes-count-{{ post.id }}">{{ post.likes.count }}</span> <span id="likes-label-{{ post.id }}">like{{ post.likes.count|pluralize }}</span>
+    </button>
+    <button onclick="toggleComments({{ post.id }})" class="hover:underline">
+      <span id="comments-count-{{ post.id }}">{{ post.comments.count }}</span> comment{{ post.comments.count|pluralize }}
+    </button>
+  </div>
+
+  <!-- Actions: Like, Comment, Save -->
+  <div class="px-3 pb-1.5 pt-1.5 flex items-center gap-1 border-t border-gray-100">
+    <button onclick="toggleLike({{ post.id }})" id="like-btn-{{ post.id }}"
+      class="post-action-btn {% if post.id in liked_post_ids %}liked{% endif %}">
+      <svg class="w-4 h-4 like-icon" fill="{% if post.id in liked_post_ids %}currentColor{% else %}none{% endif %}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+      </svg>
+      Like
+    </button>
+
+    <button onclick="toggleComments({{ post.id }})" class="post-action-btn">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+      Comment
+    </button>
+
+    <button onclick="toggleSave({{ post.id }})" id="save-btn-{{ post.id }}"
+      class="post-action-btn {% if post.id in saved_post_ids %}saved{% endif %}">
+      <svg class="w-4 h-4" fill="{% if post.id in saved_post_ids %}currentColor{% else %}none{% endif %}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+      </svg>
+      Save
+    </button>
+  </div>
+
+  <!-- Comment Drawer -->
+  <div id="comments-drawer-{{ post.id }}" class="hidden px-4 pb-4 border-t border-gray-100 pt-3">
+    <div id="comments-list-{{ post.id }}" class="space-y-2.5 mb-3 max-h-60 overflow-y-auto">
+      {% for comment in post.comments.all %}
+        {% include 'posts/_components/comment_section.html' with comment=comment %}
+      {% empty %}
+        <p id="no-comments-msg-{{ post.id }}" class="text-xs text-gray-400 italic">No comments yet. Be the first!</p>
+      {% endfor %}
+    </div>
+
+    <form onsubmit="postComment(event, {{ post.id }})" class="flex items-center gap-2 mt-2">
+      {% csrf_token %}
+      <div class="avatar avatar-sm flex-shrink-0">
+        {% if request.user.profile.profile_image %}
+          <img src="{{ request.user.profile.profile_image.url }}" alt="{{ request.user.first_name }}">
+        {% else %}
+          <span>{{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}</span>
+        {% endif %}
+      </div>
+      <div class="flex-1 relative">
+        <input type="text" name="content" placeholder="Write a comment…" required
+          class="form-input text-xs pr-14 py-1.5 rounded-full">
+        <button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 btn btn-primary btn-sm rounded-full text-[10px] px-3 py-1">Post</button>
+      </div>
+    </form>
+  </div>
+
+</article>
+
+<script>
+  if (typeof handleDoubleTapLike === 'function') {
+    const mc = document.getElementById('media-container-{{ post.id }}');
+    if (mc) handleDoubleTapLike({{ post.id }}, mc);
+  }
+</script>

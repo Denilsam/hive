@@ -1,0 +1,23 @@
+<div class="comment-bubble flex items-start gap-2.5" id="comment-{{ comment.id }}">
+  <a href="{% url 'profiles:profile_detail' username=comment.user.username %}" class="avatar avatar-sm flex-shrink-0">
+    {% if comment.user.profile.profile_image %}
+      <img src="{{ comment.user.profile.profile_image.url }}" alt="{{ comment.user.first_name }}">
+    {% else %}
+      <span style="font-size:0.6rem">{{ comment.user.first_name|slice:":1" }}{{ comment.user.last_name|slice:":1" }}</span>
+    {% endif %}
+  </a>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-baseline justify-between gap-2 mb-0.5">
+      <a href="{% url 'profiles:profile_detail' username=comment.user.username %}" class="text-xs font-bold hover:text-indigo-400 transition-colors" style="color:var(--text-1)">
+        {{ comment.user.first_name }} {{ comment.user.last_name }}
+      </a>
+      <span class="text-[10px] flex-shrink-0" style="color:var(--text-3)">{{ comment.created_at|timesince }} ago</span>
+    </div>
+    <p class="text-xs leading-relaxed" style="color:var(--text-2)">{{ comment.content }}</p>
+  </div>
+  {% if request.user == comment.user %}
+    <button type="button" onclick="openGlobalDeleteModal({ url: '{% url 'posts:comment_delete' pk=comment.id %}', objectType: 'comment', targetElementId: 'comment-{{ comment.id }}' })" class="flex-shrink-0 text-xs font-bold transition-colors mt-0.5" style="color:var(--text-3)" title="Delete comment"
+      onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-3)'"
+      aria-label="Delete comment">✕</button>
+  {% endif %}
+</div>

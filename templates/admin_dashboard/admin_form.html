@@ -1,0 +1,53 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Create Admin | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="max-w-2xl mx-auto space-y-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard:admin_list' %}" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900">← Back</a>
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Create Admin Profile</h1>
+      <p class="text-xs text-slate-500 mt-0.5">Promote an existing user to an administrative role.</p>
+    </div>
+  </div>
+
+  <div class="card-admin p-6">
+    <form method="post" action="{% url 'admin_dashboard:admin_create' %}" class="space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Select User</label>
+        <select name="user_id" required class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+          <option value="">-- Choose User --</option>
+          {% for u in non_admins %}
+            <option value="{{ u.id }}">{{ u.email }} ({{ u.first_name }} {{ u.last_name }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Admin Role</label>
+        <select name="role" required class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+          {% for code, name in roles %}
+            <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Granular Permissions</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-100 rounded-xl bg-slate-50">
+          {% for p in permissions %}
+            <label class="flex items-center gap-2 text-xs text-slate-800 cursor-pointer">
+              <input type="checkbox" name="permissions" value="{{ p.id }}" class="rounded text-emerald-500 focus:ring-emerald-500">
+              <span class="font-semibold">{{ p.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-all">Create Admin Profile</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

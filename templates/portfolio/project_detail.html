@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.title }} | Hive{% endblock %}
+
+{% block show_right_panel %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900">
+    <div class="max-w-5xl mx-auto space-y-8 text-slate-850">
+        
+        <!-- Top Header Navigation -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 text-white">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'portfolio:portfolio_detail' username=project.owner.username %}" class="hover:text-slate-350 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                </a>
+                <h1 class="text-xl sm:text-2xl font-extrabold truncate">Project Showcase</h1>
+            </div>
+            
+            {% if request.user == project.owner %}
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'portfolio:project_edit' pk=project.id %}" class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold hover:bg-slate-700 transition-colors">
+                        Edit Project
+                    </a>
+                    <form id="delete-detail-project-form" action="{% url 'portfolio:project_delete' pk=project.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-detail-project-form', objectType: 'project', objectTitle: '{{ project.title|escapejs }}', redirectUrl: '{% url 'portfolio:portfolio_detail' username=request.user.username %}' })" class="inline-flex items-center justify-center rounded-xl bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition-colors">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Project Sheet Grid (Left: Image Gallery, Right: Details) -->
+        <div class="bg-white/95 rounded-2xl overflow-hidden border border-slate-200 shadow-md p-6 sm:p-8 space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Left Column: Large Image & Gallery -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-gradient-to-r from-brand-500 to-indigo-600 aspect-video relative">
+                        {% if project.project_image %}
+                            <img src="{{ project.project_image.url }}" alt="{{ project.title }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-white font-extrabold text-3xl">
+                                {{ project.title }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if project.is_featured %}
+                            <span class="absolute top-4 right-4 bg-amber-500 text-white text-[10px] font-extrabold px-3 py-1.5 rounded-md uppercase tracking-wider shadow-sm">
+                                Featured Project
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Image Gallery Grid if multiple images -->
+                    {% if images %}
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Project Screenshots</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {% for img in images %}
+                                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative group aspect-video">
+                                        <img src="{{ img.image.url }}" alt="Screenshot" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column: Project Metadata & Action Links -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-xs uppercase font-extrabold text-brand-600 tracking-wider">
+                                {{ project.get_category_display }}
+                            </span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+                                {{ project.title }}
+                            </h2>
+                            <p class="text-xs font-semibold text-slate-500 mt-1">
+                                By <a href="{% url 'profiles:profile_detail' username=project.owner.username %}" class="font-bold text-slate-700 hover:text-brand-600">{{ project.owner.first_name }} {{ project.owner.last_name }}</a>
+                                &bull; <span class="text-slate-400">{{ project.created_at|date:"M d, Y" }}</span>
+                            </p>
+                        </div>
+
+                        <!-- Short Description -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-xs sm:text-sm font-medium text-slate-700 leading-relaxed">
+                                {{ project.short_description }}
+                            </p>
+                        </div>
+
+                        <!-- Technology Stack Chips -->
+                        <div class="space-y-2">
+                            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Technology Stack</h3>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for tech in project.technologies.all %}
+                                    <span class="inline-flex items-center rounded-lg bg-brand-50 border border-brand-100/50 px-3 py-1 text-xs font-semibold text-brand-700 shadow-sm">
+                                        {{ tech.name }}
+                                    </span>
+                                {% empty %}
+                                    <span class="text-xs text-slate-400 italic">No technologies listed.</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Links (GitHub, Live Demo, YouTube, Share) -->
+                    <div class="space-y-3 pt-4 border-t border-slate-100">
+                        <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Project Links</h3>
+                        <div class="flex flex-col gap-2.5">
+                            {% if project.github_url %}
+                                <a href="{{ project.github_url }}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition-colors">
+                                    <svg class="h-4 w-4 text-slate-800" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+                                    View Repository
+                                </a>
+                            {% endif %}
+
+                            {% if project.demo_url %}
+                                <a href="{{ project.demo_url }}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    Visit Live Demo
+                                </a>
+                            {% endif %}
+
+                            {% if project.video_url %}
+                                <a href="{{ project.video_url }}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors">
+                                    <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                    Watch Demo
+                                </a>
+                            {% endif %}
+
+                            <button onclick="navigator.clipboard.writeText(window.location.href); alert('Project link copied to clipboard!');" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-colors">
+                                <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 100-5.367 3 3 0 000 5.367zm0 8.001a3 3 0 100-5.367 3 3 0 000 5.367z"/></svg>
+                                Share Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Detailed Description (About the Project) -->
+            <div class="pt-8 border-t border-slate-100 space-y-3">
+                <h3 class="text-sm font-extrabold text-slate-900">About the Project</h3>
+                <div class="text-sm text-slate-650 leading-relaxed whitespace-pre-line bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                    {{ project.description }}
+                </div>
+            </div>
+
+            <!-- Likes & Engagement Bar -->
+            <div class="pt-6 border-t border-slate-100 space-y-4">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+                    <span id="project-likes-count">{{ project.likes.count }} Like{{ project.likes.count|pluralize }}</span>
+                    <span id="project-comments-count">{{ project.comments.count }} Comment{{ project.comments.count|pluralize }}</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleProjectLike({{ project.id }})" id="project-like-btn" class="flex-grow flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-bold transition-all {% if is_liked %}text-brand-600 bg-brand-50/50{% else %}text-slate-500 hover:bg-slate-50 border border-slate-200/50{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.5c.086 0 .17.01.25.031 1.085.29 2.518.577 3.526.793M18 10.5h.008v.008H18V10.5zm-2.25 0h.008v.008H15.75V10.5zm-2.25 0h.008v.008H13.5V10.5zm-2.25 0h.008v.008H11.25V10.5zm-2.25 0h.008v.008H9V10.5z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21a9 9 0 10-9-9c0 1.258.258 2.457.72 3.543l-.72 3.543 3.543-.72A8.96 8.96 0 0010.5 21z" />
+                        </svg>
+                        Like Project
+                    </button>
+                    <button onclick="document.getElementById('project-comment-input').focus()" class="flex-grow flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 border border-slate-200/50 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 18l-.736-2.545a8.775 8.775 0 01-.174-1.705C4.5 9.176 8.53 5.5 13.5 5.5a8.775 8.775 0 018.5 6.5z" />
+                        </svg>
+                        Comment
+                    </button>
+                </div>
+            </div>
+
+            <!-- Discussion Comments Section -->
+            <div class="pt-6 border-t border-slate-100 space-y-4">
+                <h3 class="text-sm font-extrabold text-slate-900">Project Discussion</h3>
+                
+                <div id="project-comments-list" class="space-y-3">
+                    {% for comment in comments %}
+                        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50" id="project-comment-{{ comment.id }}">
+                            <a href="{% url 'profiles:profile_detail' username=comment.user.username %}" class="h-8 w-8 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center">
+                                {% if comment.user.profile.profile_image %}
+                                    <img src="{{ comment.user.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-600 text-white font-bold text-xs">
+                                        {{ comment.user.first_name|slice:":1" }}{{ comment.user.last_name|slice:":1" }}
+                                    </div>
+                                {% endif %}
+                            </a>
+                            <div class="flex-grow min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <a href="{% url 'profiles:profile_detail' username=comment.user.username %}" class="text-xs font-extrabold text-slate-900 hover:text-brand-600 truncate">
+                                        {{ comment.user.first_name }} {{ comment.user.last_name }}
+                                    </a>
+                                    <span class="text-[9px] text-slate-400 font-semibold flex-shrink-0">{{ comment.created_at|date:"M d, P" }}</span>
+                                </div>
+                                <p class="text-xs text-slate-650 leading-relaxed mt-1">
+                                    {{ comment.content }}
+                                </p>
+                            </div>
+                            {% if request.user == comment.user %}
+                                <button onclick="deleteProjectComment({{ comment.id }})" class="text-[10px] font-bold text-rose-500 hover:text-rose-600 p-1 flex-shrink-0 transition-colors">
+                                    Delete
+                                </button>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <p id="no-project-comments-msg" class="text-xs text-slate-400 italic">No comments on this project yet. Start a discussion!</p>
+                    {% endfor %}
+                </div>
+
+                {% if request.user.is_authenticated %}
+                    <form onsubmit="postProjectComment(event, {{ project.id }})" class="relative flex items-center gap-2 mt-3">
+                        {% csrf_token %}
+                        <input type="text" id="project-comment-input" name="content" required placeholder="Write a comment..." class="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 placeholder-slate-400 transition-all text-xs">
+                        <button type="submit" class="absolute right-2.5 bg-brand-600 text-white hover:bg-brand-500 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">Post</button>
+                    </form>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    function toggleProjectLike(projectId) {
+        const url = `/project/${projectId}/like/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const likeBtn = document.getElementById('project-like-btn');
+                const likesCount = document.getElementById('project-likes-count');
+                likesCount.textContent = `${data.likes_count} Like${data.likes_count !== 1 ? 's' : ''}`;
+                
+                if (data.liked) {
+                    likeBtn.classList.remove('text-slate-500', 'hover:bg-slate-50');
+                    likeBtn.classList.add('text-brand-600', 'bg-brand-50/50');
+                } else {
+                    likeBtn.classList.remove('text-brand-600', 'bg-brand-50/50');
+                    likeBtn.classList.add('text-slate-500', 'hover:bg-slate-50');
+                }
+            }
+        });
+    }
+
+    function postProjectComment(event, projectId) {
+        event.preventDefault();
+        const form = event.target;
+        const input = document.getElementById('project-comment-input');
+        const content = input.value;
+        const url = `/project/${projectId}/comment/`;
+        
+        const formData = new FormData();
+        formData.append('content', content);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                input.value = '';
+                const list = document.getElementById('project-comments-list');
+                const noCommentsMsg = document.getElementById('no-project-comments-msg');
+                if (noCommentsMsg) noCommentsMsg.remove();
+
+                const comment = data.comment;
+                let avatarHTML = '';
+                if (comment.author_avatar) {
+                    avatarHTML = `<img src="${comment.author_avatar}" alt="Avatar" class="w-full h-full object-cover">`;
+                } else {
+                    const initials = comment.author_name.split(' ').map(n => n[0]).join('');
+                    avatarHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-600 text-white font-bold text-xs">${initials}</div>`;
+                }
+
+                const commentHTML = `
+                    <div class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50" id="project-comment-${comment.id}">
+                        <a href="/profile/${comment.author_username}/" class="h-8 w-8 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center">
+                            ${avatarHTML}
+                        </a>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <a href="/profile/${comment.author_username}/" class="text-xs font-extrabold text-slate-900 hover:text-brand-600 truncate">
+                                    ${comment.author_name}
+                                </a>
+                                <span class="text-[9px] text-slate-400 font-semibold flex-shrink-0">${comment.created_at}</span>
+                            </div>
+                            <p class="text-xs text-slate-650 leading-relaxed mt-1">
+                                ${comment.content}
+                            </p>
+                        </div>
+                        <button onclick="deleteProjectComment(${comment.id})" class="text-[10px] font-bold text-rose-500 hover:text-rose-600 p-1 flex-shrink-0 transition-colors">
+                            Delete
+                        </button>
+                    </div>
+                `;
+
+                list.insertAdjacentHTML('beforeend', commentHTML);
+                
+                const commentsCounter = document.getElementById('project-comments-count');
+                const count = list.children.length;
+                commentsCounter.textContent = `${count} Comment${count !== 1 ? 's' : ''}`;
+            }
+        });
+    }
+
+    function deleteProjectComment(commentId) {
+        if (!confirm("Are you sure you want to delete this comment?")) return;
+        const url = `/project/comment/${commentId}/delete/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const commentEl = document.getElementById(`project-comment-${commentId}`);
+                const list = commentEl.parentElement;
+                commentEl.remove();
+                
+                const count = list.children.length;
+                const commentsCounter = document.getElementById('project-comments-count');
+                commentsCounter.textContent = `${count} Comment${count !== 1 ? 's' : ''}`;
+                
+                if (count === 0) {
+                    list.innerHTML = `<p id="no-project-comments-msg" class="text-xs text-slate-400 italic">No comments on this project yet. Start a discussion!</p>`;
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

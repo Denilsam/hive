@@ -1,0 +1,19 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Session Control | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Active Sessions</h1>
+    <p class="text-xs text-slate-500 mt-1">Monitor active user and admin sessions.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="card-admin p-5">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Database Sessions</p>
+      <p class="text-3xl font-black text-slate-900 mt-1">{{ active_sessions_count }}</p>
+      <p class="text-xs text-slate-500 mt-2">Unexpired session tokens in database.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}Create Account | Hive{% endblock %}
+
+{% block content_public %}
+<div class="auth-page">
+
+  <!-- ── Left Showcase Panel (Desktop only) ───────────────── -->
+  <div class="auth-showcase">
+    {% if showcase_images %}
+      {% with img=showcase_images.0 %}
+        <img src="{{ img.image.url }}" alt="{{ img.title }}" class="auth-showcase-img">
+        <div class="auth-showcase-brand">
+          <img src="{{ site_branding.logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="{{ site_branding.site_name }}" style="max-height:2.25rem;width:auto;max-width:160px;object-fit:contain;">
+        </div>
+        <div class="auth-showcase-content">
+          <h2 style="font-size:1.75rem;font-weight:900;color:#fff;line-height:1.2;margin-bottom:0.5rem;">
+            {{ img.title }}
+          </h2>
+          {% if img.description %}
+            <p style="font-size:0.9rem;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:1rem;">
+              {{ img.description }}
+            </p>
+          {% endif %}
+          <div class="auth-feature-chips">
+            <span class="auth-feature-chip">📁 Portfolio showcase</span>
+            <span class="auth-feature-chip">💬 Real-time chat</span>
+            <span class="auth-feature-chip">🤝 Collaboration</span>
+            <span class="auth-feature-chip">🌐 Professional network</span>
+          </div>
+        </div>
+      {% endwith %}
+    {% else %}
+      <div class="auth-showcase-brand">
+        <img src="{{ site_branding.logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="{{ site_branding.site_name }}" style="max-height:2.25rem;width:auto;max-width:160px;object-fit:contain;">
+      </div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;">
+        <img src="{{ site_branding.logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="{{ site_branding.site_name }}" style="max-height:4.5rem;width:auto;max-width:240px;object-fit:contain;margin-bottom:1.5rem;">
+        <h2 style="font-size:2rem;font-weight:900;color:#fff;text-align:center;line-height:1.2;margin-bottom:1rem;">Start your journey.</h2>
+        <p style="font-size:0.9375rem;color:rgba(255,255,255,0.7);text-align:center;line-height:1.7;max-width:360px;">
+          Join thousands of students, creators, and freelancers building their professional presence on {{ site_branding.site_name }}.
+        </p>
+        <!-- Feature grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:2rem;width:100%;max-width:380px;">
+          <div style="background:rgba(255,255,255,0.12);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.2);border-radius:0.875rem;padding:1rem;">
+            <div style="font-size:1.375rem;margin-bottom:0.375rem;">📁</div>
+            <p style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:0.125rem;">Portfolio Showcase</p>
+            <p style="font-size:0.6875rem;color:rgba(255,255,255,0.5);">Display your projects</p>
+          </div>
+          <div style="background:rgba(255,255,255,0.12);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.2);border-radius:0.875rem;padding:1rem;">
+            <div style="font-size:1.375rem;margin-bottom:0.375rem;">💬</div>
+            <p style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:0.125rem;">Real-time Chat</p>
+            <p style="font-size:0.6875rem;color:rgba(255,255,255,0.5);">Message connections</p>
+          </div>
+          <div style="background:rgba(255,255,255,0.12);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.2);border-radius:0.875rem;padding:1rem;">
+            <div style="font-size:1.375rem;margin-bottom:0.375rem;">🤝</div>
+            <p style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:0.125rem;">Collaboration</p>
+            <p style="font-size:0.6875rem;color:rgba(255,255,255,0.5);">Find teammates</p>
+          </div>
+          <div style="background:rgba(255,255,255,0.12);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.2);border-radius:0.875rem;padding:1rem;">
+            <div style="font-size:1.375rem;margin-bottom:0.375rem;">💼</div>
+            <p style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:0.125rem;">Opportunities</p>
+            <p style="font-size:0.6875rem;color:rgba(255,255,255,0.5);">Freelance & jobs</p>
+          </div>
+        </div>
+      </div>
+      <div class="auth-showcase-content">
+        <div class="auth-feature-chips">
+          <span class="auth-feature-chip">📁 Portfolio</span>
+          <span class="auth-feature-chip">💬 Real-time chat</span>
+          <span class="auth-feature-chip">🤝 Collaboration</span>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Right Auth Card Panel ─────────────────────────────── -->
+  <div class="auth-card-panel">
+    <div class="auth-card">
+
+      <!-- Mobile logo -->
+      <div class="auth-mobile-logo" style="display:flex;align-items:center;margin-bottom:1.5rem;">
+        <img src="{{ site_branding.logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="{{ site_branding.site_name }}" style="max-height:2.25rem;width:auto;max-width:160px;object-fit:contain;">
+      </div>
+
+      <h1 style="font-size:1.625rem;font-weight:900;color:#111827;margin-bottom:0.375rem;letter-spacing:-0.02em;">Create your account</h1>
+      <p style="font-size:0.875rem;color:#6B7280;margin-bottom:1.75rem;">It's free and takes less than 2 minutes.</p>
+
+      {% if messages %}
+        <div style="margin-bottom:1rem;" class="space-y-2">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %}">
+              <span class="text-xs font-semibold">{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Register Form -->
+      <form method="post" action="{% url 'accounts:register' %}" class="space-y-4" novalidate id="register-form">
+        {% csrf_token %}
+
+        <!-- Name row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div>
+            <label for="id_first_name" class="auth-form-label">First name</label>
+            <input type="text" name="first_name" id="id_first_name" placeholder="Alice"
+                   class="auth-form-input" required autocomplete="given-name">
+            {% if form.first_name.errors %}
+              <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.first_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label for="id_last_name" class="auth-form-label">Last name</label>
+            <input type="text" name="last_name" id="id_last_name" placeholder="Smith"
+                   class="auth-form-input" required autocomplete="family-name">
+            {% if form.last_name.errors %}
+              <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.last_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="id_email" class="auth-form-label">Email address</label>
+          <input type="email" name="email" id="id_email" placeholder="you@example.com"
+                 class="auth-form-input" required autocomplete="email">
+          {% if form.email.errors %}
+            <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.email.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Account type -->
+        <div>
+          <label class="auth-form-label">I am a…</label>
+          <div class="auth-account-type-grid">
+            <input type="radio" name="account_type" id="type_student" value="STUDENT" class="auth-type-option" checked>
+            <label for="type_student" class="auth-type-label">
+              <span class="auth-type-emoji">🎓</span>
+              <span class="auth-type-name">Student</span>
+            </label>
+
+            <input type="radio" name="account_type" id="type_creator" value="CREATOR" class="auth-type-option">
+            <label for="type_creator" class="auth-type-label">
+              <span class="auth-type-emoji">🎨</span>
+              <span class="auth-type-name">Creator</span>
+            </label>
+
+            <input type="radio" name="account_type" id="type_freelancer" value="FREELANCER" class="auth-type-option">
+            <label for="type_freelancer" class="auth-type-label">
+              <span class="auth-type-emoji">💼</span>
+              <span class="auth-type-name">Freelancer</span>
+            </label>
+
+            <input type="radio" name="account_type" id="type_org" value="ORGANIZATION" class="auth-type-option">
+            <label for="type_org" class="auth-type-label">
+              <span class="auth-type-emoji">🏢</span>
+              <span class="auth-type-name">Organization</span>
+            </label>
+          </div>
+          {% if form.account_type.errors %}
+            <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.account_type.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label for="id_password" class="auth-form-label">Password</label>
+          <input type="password" name="password" id="id_password" placeholder="Min. 8 characters"
+                 class="auth-form-input" required autocomplete="new-password">
+          {% if form.password.errors %}
+            <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.password.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Confirm Password -->
+        <div>
+          <label for="id_confirm_password" class="auth-form-label">Confirm password</label>
+          <input type="password" name="confirm_password" id="id_confirm_password" placeholder="Repeat password"
+                 class="auth-form-input" required autocomplete="new-password">
+          {% if form.confirm_password.errors %}
+            <p style="color:#EF4444;font-size:0.75rem;margin-top:0.25rem;">{{ form.confirm_password.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <p style="font-size:0.75rem;color:#9CA3AF;line-height:1.5;">
+          By creating an account you agree to our
+          <a href="#" style="color:#10B981;font-weight:600;text-decoration:none;">Terms of Service</a> and
+          <a href="#" style="color:#10B981;font-weight:600;text-decoration:none;">Privacy Policy</a>.
+        </p>
+
+        <button type="submit" class="auth-btn-primary" id="register-submit-btn">
+          Create Account →
+        </button>
+      </form>
+
+      <!-- Sign in link -->
+      <p style="margin-top:1.5rem;text-align:center;font-size:0.8125rem;color:#6B7280;">
+        Already have an account?
+        <a href="{% url 'accounts:login' %}"
+           style="font-weight:700;color:#10B981;text-decoration:none;margin-left:0.25rem;"
+           onmouseover="this.style.color='#059669'" onmouseout="this.style.color='#10B981'">Sign in →</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Prevent double-submit on register
+  document.getElementById('register-form')?.addEventListener('submit', function() {
+    const btn = document.getElementById('register-submit-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
+  });
+</script>
+{% endblock %}

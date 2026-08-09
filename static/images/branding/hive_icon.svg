@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="hive-icon-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9F1C" />
+      <stop offset="100%" stop-color="#FF6B00" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0F172A"/>
+  <polygon points="32,8 52,19.5 52,44.5 32,56 12,44.5 12,19.5" fill="none" stroke="url(#hive-icon-orange)" stroke-width="3.5" />
+  <polygon points="32,16 44,23 44,41 32,48 20,41 20,23" fill="url(#hive-icon-orange)" />
+  <polygon points="32,24 38,27.5 38,36.5 32,40 26,36.5 26,27.5" fill="#0F172A" />
+</svg>

@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+{% block title %}{{ profile_user.first_name }} {{ profile_user.last_name }} | Hive{% endblock %}
+
+{% block show_right_panel %}{% endblock %}
+
+{% block content %}
+{% block content_public %}
+<div class="w-full space-y-5 animate-fade-up">
+
+  <!-- Cover + Identity Card -->
+  <div class="card overflow-hidden">
+    <!-- Cover -->
+    <div class="profile-cover">
+      {% if profile.cover_image %}
+        <img src="{{ profile.cover_image.url }}" alt="Cover" class="cover-img">
+      {% else %}
+        <div class="w-full h-full" style="background:linear-gradient(135deg,#10B981 0%,#059669 40%,#4338CA 100%)"></div>
+      {% endif %}
+    </div>
+
+    <!-- Identity -->
+    <div class="px-4 sm:px-6 pb-6 pt-2 bg-white">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-16 sm:-mt-14">
+        <!-- Avatar (overlaps cover with emerald ring) -->
+        <div class="avatar avatar-3xl relative flex-shrink-0 z-10 self-start sm:self-auto">
+          {% if profile.profile_image %}
+            <img src="{{ profile.profile_image.url }}" alt="{{ profile_user.first_name }}">
+          {% else %}
+            <span>{{ profile_user.first_name|slice:":1" }}{{ profile_user.last_name|slice:":1" }}</span>
+          {% endif %}
+        </div>
+
+        <!-- CTA buttons -->
+        <div class="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+          {% if is_own_profile %}
+            <a href="{% url 'profiles:profile_edit' %}" class="btn btn-secondary btn-sm gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              Edit Profile
+            </a>
+            <a href="{% url 'portfolio:portfolio_detail' username=request.user.username %}" class="btn btn-ghost btn-sm">My Portfolio</a>
+          {% else %}
+            <!-- Follow button -->
+            {% if is_following %}
+              <form action="{% url 'connections:follow_toggle' user_id=profile_user.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm">Following</button>
+              </form>
+            {% else %}
+              <form action="{% url 'connections:follow_toggle' user_id=profile_user.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">Follow</button>
+              </form>
+            {% endif %}
+            
+            <!-- Message button -->
+            <a href="{% url 'chat:start_conversation' user_id=profile_user.id %}" class="btn btn-ghost btn-sm">Message</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Name, headline, location -->
+      <div class="mt-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-2xl font-black text-slate-900">{{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+          {% if profile_user.account_type %}
+            <span class="badge badge-brand">{{ profile_user.get_account_type_display }}</span>
+          {% endif %}
+        </div>
+        <p class="text-sm mt-1 font-medium text-slate-600">{{ profile.headline|default:"Professional on Hive" }}</p>
+        {% if profile.location %}
+          <p class="text-xs mt-1.5 flex items-center gap-1 text-slate-500">
+            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            {{ profile.location }}
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Stats row -->
+      <div class="flex flex-wrap gap-8 mt-4 pt-4 border-t border-slate-100">
+        <div class="text-left">
+          <p class="text-base font-black text-slate-900">{{ posts_count|default:0 }}</p>
+          <p class="text-xs text-slate-500 font-semibold">Posts</p>
+        </div>
+        <a href="{% url 'connections:user_followers' username=profile_user.username %}" class="text-left group hover:opacity-80 transition-opacity">
+          <p class="text-base font-black text-slate-900 group-hover:text-brand-600 transition-colors">{{ followers_count|default:0 }}</p>
+          <p class="text-xs text-slate-500 font-semibold group-hover:text-brand-600 transition-colors">Followers</p>
+        </a>
+        <a href="{% url 'connections:user_following' username=profile_user.username %}" class="text-left group hover:opacity-80 transition-opacity">
+          <p class="text-base font-black text-slate-900 group-hover:text-brand-600 transition-colors">{{ following_count|default:0 }}</p>
+          <p class="text-xs text-slate-500 font-semibold group-hover:text-brand-600 transition-colors">Following</p>
+        </a>
+      </div>
+
+      <!-- Social links -->
+      {% if profile.website or profile.linkedin_url or profile.github_url or profile.twitter_url %}
+        <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100">
+          {% if profile.website %}<a href="{{ profile.website }}" target="_blank" rel="noopener" class="chip">🌐 Website</a>{% endif %}
+          {% if profile.linkedin_url %}<a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener" class="chip">in LinkedIn</a>{% endif %}
+          {% if profile.github_url %}<a href="{{ profile.github_url }}" target="_blank" rel="noopener" class="chip">⌥ GitHub</a>{% endif %}
+          {% if profile.twitter_url %}<a href="{{ profile.twitter_url }}" target="_blank" rel="noopener" class="chip">𝕏 Twitter</a>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Profile Strength (own profile only) -->
+  {% if is_own_profile %}
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold" style="color:var(--text-2)">Profile Strength</span>
+        <span class="text-xs font-black" style="color:var(--brand-light)">{{ profile.completion_percentage }}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:{{ profile.completion_percentage }}%"></div></div>
+      {% if profile.completion_percentage < 100 %}
+        <p class="text-xs mt-2" style="color:var(--text-3)">Complete your bio, skills, experience, and social links to reach 100%.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Tabs -->
+  <div class="card">
+    <!-- Tab bar -->
+    <div class="flex overflow-x-auto" style="border-bottom:1px solid var(--border-1)" role="tablist">
+      {% for tab_id, tab_label in tabs %}
+        <button class="profile-tab {% if forloop.first %}active{% endif %}" data-tab="{{ tab_id }}" onclick="switchTab('{{ tab_id }}')" role="tab" aria-controls="panel-{{ tab_id }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+          {{ tab_label }}
+        </button>
+      {% empty %}
+        <button class="profile-tab active" data-tab="about" onclick="switchTab('about')" role="tab">About</button>
+        <button class="profile-tab" data-tab="experience" onclick="switchTab('experience')" role="tab">Experience</button>
+        <button class="profile-tab" data-tab="education" onclick="switchTab('education')" role="tab">Education</button>
+        <button class="profile-tab" data-tab="skills" onclick="switchTab('skills')" role="tab">Skills</button>
+        <button class="profile-tab" data-tab="certs" onclick="switchTab('certs')" role="tab">Certificates</button>
+      {% endfor %}
+    </div>
+
+    <div class="p-5">
+
+      <!-- About panel -->
+      <div id="panel-about" class="tab-panel active" role="tabpanel">
+        <h2 class="text-sm font-black mb-3" style="color:var(--text-1)">About</h2>
+        <p class="text-sm leading-relaxed whitespace-pre-line" style="color:var(--text-2)">{{ profile.bio|default:"No bio written yet." }}</p>
+      </div>
+
+      <!-- Experience panel -->
+      <div id="panel-experience" class="tab-panel" role="tabpanel">
+        <h2 class="text-sm font-black mb-4" style="color:var(--text-1)">Work Experience</h2>
+        {% if experience_list %}
+          <div class="space-y-5">
+            {% for exp in experience_list %}
+              <div class="flex gap-4">
+                <div class="flex-shrink-0 mt-1">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(99,102,241,0.12);color:var(--brand-light);border:1px solid rgba(99,102,241,0.20)">
+                    {{ exp.company_name|slice:":1"|upper }}
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-bold" style="color:var(--text-1)">{{ exp.role }}</h3>
+                  <p class="text-xs font-semibold mt-0.5" style="color:var(--text-2)">{{ exp.company_name }} · {{ exp.get_employment_type_display }}</p>
+                  <p class="text-xs mt-1" style="color:var(--text-3)">{{ exp.start_date|date:"M Y" }} – {% if exp.currently_working %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}</p>
+                  {% if exp.description %}
+                    <p class="text-xs mt-2 leading-relaxed whitespace-pre-line" style="color:var(--text-2)">{{ exp.description }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-8"><p>No work experience listed yet.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Education panel -->
+      <div id="panel-education" class="tab-panel" role="tabpanel">
+        <h2 class="text-sm font-black mb-4" style="color:var(--text-1)">Education</h2>
+        {% if education_list %}
+          <div class="space-y-5">
+            {% for edu in education_list %}
+              <div class="flex gap-4">
+                <div class="flex-shrink-0 mt-1">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.20)">
+                    {{ edu.institution|slice:":1"|upper }}
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-bold" style="color:var(--text-1)">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</h3>
+                  <p class="text-xs font-semibold mt-0.5" style="color:var(--text-2)">{{ edu.institution }}</p>
+                  <p class="text-xs mt-1" style="color:var(--text-3)">{{ edu.start_year }} – {{ edu.end_year|default:"Present" }}</p>
+                  {% if edu.description %}<p class="text-xs mt-2 leading-relaxed whitespace-pre-line" style="color:var(--text-2)">{{ edu.description }}</p>{% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-8"><p>No education listed yet.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Skills panel -->
+      <div id="panel-skills" class="tab-panel" role="tabpanel">
+        <h2 class="text-sm font-black mb-4" style="color:var(--text-1)">Skills</h2>
+        {% if skills %}
+          <div class="flex flex-wrap gap-2">
+            {% for us in skills %}
+              <span class="chip">
+                {{ us.skill.name }}
+                <span class="badge badge-neutral" style="font-size:0.6rem;margin-left:0.2rem">{{ us.get_level_display }}</span>
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-8"><p>No skills added yet.</p></div>
+        {% endif %}
+      </div>
+
+      <!-- Certificates panel -->
+      <div id="panel-certs" class="tab-panel" role="tabpanel">
+        <h2 class="text-sm font-black mb-4" style="color:var(--text-1)">Certifications</h2>
+        {% if certificates %}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for cert in certificates %}
+              <div class="card-lifted p-4 flex flex-col gap-2">
+                <div class="flex items-start gap-2">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.20)">
+                    🏅
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-xs font-bold truncate" style="color:var(--text-1)">{{ cert.title }}</h3>
+                    <p class="text-xs" style="color:var(--text-2)">{{ cert.organization }}</p>
+                    <p class="text-[10px] mt-0.5" style="color:var(--text-3)">Issued {{ cert.issue_date|date:"F Y" }}</p>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  {% if cert.certificate_url %}<a href="{{ cert.certificate_url }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:0.6875rem">Verify</a>{% endif %}
+                  {% if cert.certificate_file %}<a href="{{ cert.certificate_file.url }}" download class="btn btn-secondary btn-sm" style="font-size:0.6875rem">Download</a>{% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-8"><p>No certifications listed yet.</p></div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(tabId) {
+    // Deactivate all tab buttons
+    document.querySelectorAll('.profile-tab').forEach(button => {
+      button.classList.remove('active');
+      button.setAttribute('aria-selected', 'false');
+    });
+
+    // Hide all tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+
+    // Activate selected tab button
+    const targetButton = document.querySelector(`.profile-tab[data-tab="${tabId}"]`);
+    if (targetButton) {
+      targetButton.classList.add('active');
+      targetButton.setAttribute('aria-selected', 'true');
+    }
+
+    // Show target panel
+    const targetPanel = document.getElementById(`panel-${tabId}`);
+    if (targetPanel) {
+      targetPanel.classList.add('active');
+    }
+  }
+
+  // Initialize default active tab on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    switchTab('about');
+  });
+</script>
+{% endblock %}
+{% endblock %}

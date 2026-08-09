@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ collaboration.title }} | Hive{% endblock %}
+
+{% block show_right_panel %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[85vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900 text-slate-800">
+    <div class="w-full space-y-6">
+        
+        <!-- Breadcrumbs -->
+        <div class="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-4">
+            <a href="{% url 'marketplace:collaboration_explore' %}" class="hover:text-white transition-colors">Marketplace</a>
+            <span>&gt;</span>
+            <span class="text-slate-300">Opportunity Details</span>
+        </div>
+
+        <!-- Main Details Sheet -->
+        <div class="bg-white/95 rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
+            <!-- Header metadata -->
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-6 border-b border-slate-100">
+                <div class="space-y-2">
+                    <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600 ring-1 ring-inset ring-indigo-500/10 uppercase">
+                            {{ collaboration.get_project_type_display }}
+                        </span>
+                        <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600 ring-1 ring-inset ring-emerald-500/10 uppercase">
+                            {{ collaboration.get_budget_type_display }}
+                        </span>
+                        <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-650 uppercase">
+                            Status: {{ collaboration.get_status_display }}
+                        </span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">{{ collaboration.title }}</h1>
+                    <div class="text-xs font-semibold text-slate-500 flex flex-wrap gap-x-4 gap-y-1 items-center">
+                        <span>Category: <strong class="text-slate-700">{{ collaboration.category }}</strong></span>
+                        <span>&middot;</span>
+                        <span>Published by <a href="{% url 'profiles:profile_detail' username=collaboration.creator.username %}" class="text-brand-600 hover:text-brand-500">{{ collaboration.creator.first_name }} {{ collaboration.creator.last_name }}</a></span>
+                        <span>&middot;</span>
+                        <span>{{ collaboration.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 flex-shrink-0">
+                    {% if is_creator %}
+                        <a href="{% url 'marketplace:collaboration_edit' pk=collaboration.id %}" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors">
+                            Edit Opportunity
+                        </a>
+                        <form id="delete-opp-form" action="{% url 'marketplace:collaboration_delete' pk=collaboration.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-opp-form', objectType: 'opportunity', objectTitle: '{{ collaboration.title|escapejs }}', redirectUrl: '{% url 'marketplace:collaboration_explore' %}' })" class="inline-flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 px-4 py-2 text-xs font-semibold text-rose-600 transition-colors">
+                                Delete
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-2">
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Opportunity Description</h3>
+                <p class="text-sm font-semibold text-slate-700 leading-relaxed whitespace-pre-line">{{ collaboration.description }}</p>
+            </div>
+
+            <!-- Meta details (Budget amount, duration, required skills) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
+                <div>
+                    <span class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Budget Amount</span>
+                    <span class="block text-sm font-bold text-slate-800 mt-0.5">
+                        {% if collaboration.budget_amount %}₹{{ collaboration.budget_amount }}{% else %}N/A{% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Project Duration</span>
+                    <span class="block text-sm font-bold text-slate-800 mt-0.5">{{ collaboration.duration|default:"Not specified" }}</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Required Skills</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for cs in skills %}
+                            <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-650">
+                                {{ cs.skill.name }}
+                            </span>
+                        {% empty %}
+                            <span class="text-xs text-slate-400 italic">None specified</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Section -->
+        {% if not is_creator %}
+            {% if request.user.is_authenticated %}
+                {% if user_application %}
+                    <!-- Already Applied Status Display -->
+                    <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-extrabold text-slate-900">Your Application Status</h2>
+                            <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wider
+                                {% if user_application.status == 'ACCEPTED' %}
+                                    bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-500/10
+                                {% elif user_application.status == 'REJECTED' %}
+                                    bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-500/10
+                                {% elif user_application.status == 'PENDING' %}
+                                    bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-500/10
+                                {% else %}
+                                    bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10
+                                {% endif %}
+                            ">
+                                {{ user_application.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-150">
+                            <span class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Your Pitch Message</span>
+                            <p class="text-xs font-semibold text-slate-700 leading-relaxed">{{ user_application.message }}</p>
+                        </div>
+                        {% if user_application.status == 'PENDING' %}
+                            <div class="flex justify-end">
+                                <form action="{% url 'marketplace:withdraw_application' pk=user_application.id %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 px-4 py-2.5 text-xs font-semibold text-rose-600 transition-colors">
+                                        Withdraw Application
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <!-- Submit Application Form -->
+                    {% if collaboration.status == 'OPEN' %}
+                        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md space-y-4">
+                            <h2 class="text-base font-extrabold text-slate-900">Apply for this Opportunity</h2>
+                            <form action="{% url 'marketplace:apply' pk=collaboration.id %}" method="post" class="space-y-4">
+                                {% csrf_token %}
+                                {{ application_form.message }}
+                                <div class="flex justify-end">
+                                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-brand-600 hover:bg-brand-500 px-6 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors">
+                                        Submit Application
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 text-center">
+                    <p class="text-sm text-slate-400">Please <a href="{% url 'accounts:login' %}" class="text-brand-400 font-bold hover:underline">login</a> to apply for this collaboration opportunity.</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Incoming Applications List (Creator View) -->
+            <div class="space-y-4">
+                <h2 class="text-lg font-bold text-white">Incoming Applications ({{ applications|length }})</h2>
+                <div class="space-y-4">
+                    {% for app in applications %}
+                        <div class="bg-white/95 rounded-2xl p-5 border border-slate-200 shadow-md space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <a href="{% url 'profiles:profile_detail' username=app.applicant.username %}" class="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center border border-slate-200">
+                                        {% if app.applicant.profile.profile_image %}
+                                            <img src="{{ app.applicant.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                                        {% else %}
+                                            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-650 text-white font-bold text-sm">
+                                                {{ app.applicant.first_name|slice:":1" }}
+                                            </div>
+                                        {% endif %}
+                                    </a>
+                                    <div class="min-w-0">
+                                        <a href="{% url 'profiles:profile_detail' username=app.applicant.username %}" class="block text-sm font-extrabold text-slate-900 hover:text-brand-600 transition-colors truncate">
+                                            {{ app.applicant.first_name }} {{ app.applicant.last_name }}
+                                        </a>
+                                        <span class="block text-[10px] text-slate-450 font-semibold">Applied {{ app.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider
+                                    {% if app.status == 'ACCEPTED' %}
+                                        bg-emerald-50 text-emerald-600
+                                    {% elif app.status == 'REJECTED' %}
+                                        bg-rose-50 text-rose-600
+                                    {% else %}
+                                        bg-amber-50 text-amber-600
+                                    {% endif %}
+                                ">
+                                    {{ app.get_status_display }}
+                                </span>
+                            </div>
+
+                            <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed whitespace-pre-line">{{ app.message }}</p>
+
+                            {% if app.status == 'PENDING' %}
+                                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                                    <form action="{% url 'marketplace:reject_application' pk=app.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-650 px-3.5 py-2 transition-colors">
+                                            Reject
+                                        </button>
+                                    </form>
+                                    <form action="{% url 'marketplace:accept_application' pk=app.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-extrabold text-white px-3.5 py-2 transition-colors">
+                                            Accept Candidate
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <div class="bg-white/95 rounded-2xl p-8 border border-slate-200 shadow-md text-center">
+                            <p class="text-sm text-slate-400 italic">No applications submitted yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

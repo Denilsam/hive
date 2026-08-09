@@ -1,0 +1,37 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Edit Permissions | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="max-w-2xl mx-auto space-y-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard:admin_list' %}" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900">← Back</a>
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Manage Permissions</h1>
+      <p class="text-xs text-slate-500 mt-0.5">{{ profile.user.email }} ({{ profile.get_role_display }})</p>
+    </div>
+  </div>
+
+  <div class="card-admin p-6">
+    <form method="post" action="{% url 'admin_dashboard:admin_permissions' pk=profile.pk %}" class="space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Permissions Assigned</label>
+        <div class="space-y-2">
+          {% for p in all_permissions %}
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/80 cursor-pointer transition-colors">
+              <input type="checkbox" name="permissions" value="{{ p.id }}" {% if p.id in assigned_perm_ids %}checked{% endif %} class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+              <div>
+                <p class="text-xs font-bold text-slate-900">{{ p.name }} <code class="text-[10px] text-slate-400 font-mono">({{ p.codename }})</code></p>
+                <p class="text-[11px] text-slate-500 mt-0.5">{{ p.description }}</p>
+              </div>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-all">Save Permission Changes</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

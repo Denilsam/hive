@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ other_user.first_name }} | Hive{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-140px)] min-h-[500px] bg-slate-900/50 rounded-3xl overflow-hidden border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900 flex text-slate-800 animate-fade-up">
+    <!-- Sidebar (Hidden on small screens when in a room) -->
+    <div class="hidden md:flex w-80 border-r border-slate-800 flex-col bg-slate-950/40 flex-shrink-0">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h1 class="text-lg font-bold text-white">Inbox</h1>
+            <a href="{% url 'connections:network' %}" class="text-[10px] bg-brand-600/10 hover:bg-brand-600/20 text-brand-400 font-bold px-2 py-1 rounded-md transition-colors">+ New Chat</a>
+        </div>
+        
+        <!-- Conversations List -->
+        <div class="flex-1 overflow-y-auto p-2 space-y-1">
+            {% for item in conversations %}
+                <a href="{% url 'chat:chat_room' conversation_id=item.conversation.id %}" class="flex items-center gap-3 p-3 rounded-xl transition-all duration-150 {% if item.conversation.id == active_conversation.id %}bg-brand-600 text-white shadow-md shadow-brand-500/10{% else %}hover:bg-slate-800/40 text-slate-400 hover:text-white{% endif %}">
+                    <!-- Avatar -->
+                    <div class="h-9 w-9 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center border border-slate-200/20">
+                        {% if item.other_user.profile.profile_image %}
+                            <img src="{{ item.other_user.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-400 to-indigo-500 text-white font-bold text-xs uppercase">
+                                {{ item.other_user.first_name|slice:":1" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline">
+                            <h4 class="text-xs font-extrabold truncate {% if item.conversation.id == active_conversation.id %}text-white{% else %}text-slate-200{% endif %}">{{ item.other_user.first_name }} {{ item.other_user.last_name }}</h4>
+                            {% if item.last_message %}
+                                <span class="text-[8px] font-semibold {% if item.conversation.id == active_conversation.id %}text-slate-100{% else %}text-slate-500{% endif %}">{{ item.last_message.created_at|date:"P" }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-[10px] truncate mt-0.5 {% if item.conversation.id == active_conversation.id %}text-brand-100{% else %}text-slate-400{% endif %}">
+                            {% if item.last_message %}
+                                {{ item.last_message.content }}
+                            {% else %}
+                                No messages yet
+                            {% endif %}
+                        </p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Active Chat Window -->
+    <div class="flex-1 flex flex-col bg-slate-900/10 justify-between min-w-0">
+        <!-- Header -->
+        <div class="p-3 sm:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/20 flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <a href="{% url 'chat:inbox' %}" class="md:hidden flex items-center gap-1.5 px-3 py-2 -ml-1 rounded-xl text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 font-bold text-xs transition-colors min-h-[44px] flex-shrink-0" aria-label="Return to Inbox">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span>Inbox</span>
+                </a>
+                
+                <a href="{% url 'profiles:profile_detail' username=other_user.username %}" class="h-10 w-10 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center border border-slate-700/50">
+                    {% if other_user.profile.profile_image %}
+                        <img src="{{ other_user.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-650 text-white font-bold text-sm">
+                            {{ other_user.first_name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                </a>
+                
+                <div class="min-w-0 flex-1">
+                    <a href="{% url 'profiles:profile_detail' username=other_user.username %}" class="block text-sm font-extrabold text-white hover:text-brand-400 transition-colors leading-tight truncate">
+                        {{ other_user.first_name }} {{ other_user.last_name }}
+                    </a>
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block truncate">{{ other_user.get_account_type_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Pane -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+            {% for msg in messages_list %}
+                <div class="flex {% if msg.sender == request.user %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="max-w-[85%] sm:max-w-[70%] space-y-1">
+                        <!-- Message Bubble -->
+                        <div class="p-3 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed break-words
+                            {% if msg.sender == request.user %}
+                                bg-brand-600 text-white rounded-tr-none shadow-md shadow-brand-500/10
+                            {% else %}
+                                bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700/50
+                            {% endif %}
+                        ">
+                            {{ msg.content }}
+                        </div>
+                        <!-- Timestamp -->
+                        <span class="block text-[9px] text-slate-500 font-semibold px-1 {% if msg.sender == request.user %}text-right{% endif %}">
+                            {{ msg.created_at|date:"P" }}
+                        </span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-3 sm:p-4 border-t border-slate-800 bg-slate-950/40 flex-shrink-0">
+            <form id="chat-message-form" method="post" action="{% url 'chat:send_message' conversation_id=active_conversation.id %}" class="w-full">
+                {% csrf_token %}
+                <div class="flex items-center gap-2 w-full">
+                    <input type="text" id="chat-message-input" name="content" placeholder="Type a message..." class="flex-1 min-w-0 px-4 py-3 rounded-xl border border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-slate-900/80 text-white placeholder-slate-500 text-sm transition-all" required autocomplete="off">
+                    <button type="submit" id="chat-message-submit" class="inline-flex items-center justify-center flex-shrink-0 rounded-xl bg-brand-600 px-5 py-3 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-brand-500 transition-colors min-h-[44px]">
+                        Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const conversationId = {{ active_conversation.id }};
+    const currentUserEmail = "{{ request.user.email }}";
+    const messagesContainer = document.getElementById('chat-messages');
+    const messageForm = document.getElementById('chat-message-form');
+    const messageInput = document.getElementById('chat-message-input');
+
+    function scrollToBottom() {
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+    scrollToBottom();
+
+    function appendMessageToDOM(content, senderEmail, createdAtFormatted) {
+        const isMe = (senderEmail === currentUserEmail);
+        const bubbleBg = isMe ? 'bg-brand-600 text-white rounded-tr-none shadow-md shadow-brand-500/10' : 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700/50';
+        const justify = isMe ? 'justify-end' : 'justify-start';
+        const alignTime = isMe ? 'text-right' : '';
+
+        const messageHtml = `
+            <div class="flex ${justify}">
+                <div class="max-w-[70%] space-y-1">
+                    <div class="p-3 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed ${bubbleBg}">
+                        ${content}
+                    </div>
+                    <span class="block text-[9px] text-slate-500 font-semibold px-1 ${alignTime}">
+                        ${createdAtFormatted}
+                    </span>
+                </div>
+            </div>
+        `;
+        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+        scrollToBottom();
+    }
+
+    // Optional WebSockets connection with graceful fallback
+    let chatSocket = null;
+    try {
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/chat/${conversationId}/`);
+        
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.sender_email !== currentUserEmail) {
+                const dateObj = new Date(data.created_at || Date.now());
+                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                appendMessageToDOM(data.message, data.sender_email, timeStr);
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.log('WebSocket closed, using HTTP fallback.');
+        };
+    } catch(e) {
+        console.log('WebSocket connection failed, using HTTP fallback.');
+    }
+
+    // Form submission via HTTP POST with AJAX
+    let isSubmitting = false;
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const content = messageInput.value.trim();
+        if (!content || isSubmitting) return;
+
+        isSubmitting = true;
+        const submitBtn = document.getElementById('chat-message-submit');
+        if (submitBtn) submitBtn.disabled = true;
+
+        const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(messageForm.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ 'content': content })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP status ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                appendMessageToDOM(data.message.content, data.message.sender_email, data.message.created_at);
+                messageInput.value = '';
+                
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    try {
+                        chatSocket.send(JSON.stringify({ 'message': content }));
+                    } catch(err) {}
+                }
+            } else {
+                alert(data.error || 'Failed to send message.');
+            }
+        })
+        .catch(err => {
+            console.error("Message send failed:", err);
+            // Submit form natively if fetch fails
+            messageForm.submit();
+        })
+        .finally(() => {
+            isSubmitting = false;
+            if (submitBtn) submitBtn.disabled = false;
+        });
+    });
+</script>
+{% endblock %}

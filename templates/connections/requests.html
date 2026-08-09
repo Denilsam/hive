@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Connection Requests | Hive{% endblock %}
+
+{% block content %}
+<div class="min-h-[85vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900 text-slate-800">
+    <!-- Header with Tabs -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-slate-800 mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Professional Network</h1>
+            <p class="text-xs text-slate-400 mt-1">Discover professionals, manage connections, and grow your network.</p>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'connections:network' %}" class="px-4 py-2 text-xs font-bold rounded-xl transition-all bg-slate-800 text-slate-300 hover:bg-slate-700">Discovery</a>
+            <a href="{% url 'connections:requests' %}" class="px-4 py-2 text-xs font-bold rounded-xl transition-all bg-brand-600 text-white shadow-md shadow-brand-500/10">Requests</a>
+            <a href="{% url 'connections:followers' %}" class="px-4 py-2 text-xs font-bold rounded-xl transition-all bg-slate-800 text-slate-300 hover:bg-slate-700">Followers</a>
+            <a href="{% url 'connections:following' %}" class="px-4 py-2 text-xs font-bold rounded-xl transition-all bg-slate-800 text-slate-300 hover:bg-slate-700">Following</a>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto space-y-10">
+        <!-- Received Connection Requests -->
+        <div>
+            <h2 class="text-lg font-bold text-white mb-4">Received Requests ({{ received_requests|length }})</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for req in received_requests %}
+                    <div class="bg-white/95 rounded-2xl p-4 border border-slate-200 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="received-request-{{ req.id }}">
+                        <div class="flex items-center gap-3">
+                            <!-- Avatar -->
+                            <a href="{% url 'profiles:profile_detail' username=req.sender.username %}" class="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0 flex items-center justify-center">
+                                {% if req.sender.profile.profile_image %}
+                                    <img src="{{ req.sender.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-600 text-white font-bold text-base">
+                                        {{ req.sender.first_name|slice:":1" }}{{ req.sender.last_name|slice:":1" }}
+                                    </div>
+                                {% endif %}
+                            </a>
+                            <div class="min-w-0">
+                                <a href="{% url 'profiles:profile_detail' username=req.sender.username %}" class="block text-sm font-extrabold text-slate-900 hover:text-brand-600 transition-colors truncate">
+                                    {{ req.sender.first_name }} {{ req.sender.last_name }}
+                                </a>
+                                <span class="block text-xs text-slate-500 font-semibold truncate">
+                                    {{ req.sender.profile.headline|default:"Professional on Hive" }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex gap-2">
+                            <button onclick="acceptRequest({{ req.id }})" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-extrabold text-white px-4 py-2 transition-colors">
+                                Accept
+                            </button>
+                            <button onclick="rejectRequest({{ req.id }})" class="inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-500 px-4 py-2 transition-colors">
+                                Ignore
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-span-full bg-white/95 rounded-2xl p-8 border border-slate-200 shadow-md text-center">
+                        <p class="text-sm text-slate-400 italic">No incoming requests at the moment.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sent Connection Requests -->
+        <div>
+            <h2 class="text-lg font-bold text-white mb-4">Sent Requests ({{ sent_requests|length }})</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for req in sent_requests %}
+                    <div class="bg-white/95 rounded-2xl p-4 border border-slate-200 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="sent-request-{{ req.id }}">
+                        <div class="flex items-center gap-3">
+                            <!-- Avatar -->
+                            <a href="{% url 'profiles:profile_detail' username=req.receiver.username %}" class="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0 flex items-center justify-center">
+                                {% if req.receiver.profile.profile_image %}
+                                    <img src="{{ req.receiver.profile.profile_image.url }}" alt="Avatar" class="w-full h-full object-cover">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-600 text-white font-bold text-base">
+                                        {{ req.receiver.first_name|slice:":1" }}{{ req.receiver.last_name|slice:":1" }}
+                                    </div>
+                                {% endif %}
+                            </a>
+                            <div class="min-w-0">
+                                <a href="{% url 'profiles:profile_detail' username=req.receiver.username %}" class="block text-sm font-extrabold text-slate-900 hover:text-brand-600 transition-colors truncate">
+                                    {{ req.receiver.first_name }} {{ req.receiver.last_name }}
+                                </a>
+                                <span class="block text-xs text-slate-500 font-semibold truncate">
+                                    {{ req.receiver.profile.headline|default:"Professional on Hive" }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <button onclick="cancelRequest({{ req.id }})" class="inline-flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-600 px-4 py-2 transition-colors">
+                            Cancel Request
+                        </button>
+                    </div>
+                {% empty %}
+                    <div class="col-span-full bg-white/95 rounded-2xl p-8 border border-slate-200 shadow-md text-center">
+                        <p class="text-sm text-slate-400 italic">No outgoing pending requests.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    function acceptRequest(reqId) {
+        const url = `/network/request/accept/${reqId}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`received-request-${reqId}`).remove();
+                // Optional: refresh page to see updated network list
+            }
+        });
+    }
+
+    function rejectRequest(reqId) {
+        const url = `/network/request/reject/${reqId}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`received-request-${reqId}`).remove();
+            }
+        });
+    }
+
+    function cancelRequest(reqId) {
+        const url = `/network/request/cancel/${reqId}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`sent-request-${reqId}`).remove();
+            }
+        });
+    }
+</script>
+{% endblock %}

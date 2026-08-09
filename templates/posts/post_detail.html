@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Post Detail | Hive{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900">
+    <div class="max-w-3xl mx-auto space-y-6 text-slate-850">
+        
+        <!-- Header -->
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-800 text-white mb-4">
+            <a href="{% url 'posts:feed' %}" class="hover:text-slate-300 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 class="text-xl sm:text-2xl font-extrabold">Post Details</h1>
+        </div>
+
+        <!-- Render Post Card -->
+        {% include 'posts/_components/post_card.html' with post=post liked_post_ids=liked_post_ids saved_post_ids=saved_post_ids %}
+
+    </div>
+</div>
+
+<script>
+    // Force comment drawer to be active on detail page loading
+    document.addEventListener("DOMContentLoaded", function() {
+        const drawer = document.getElementById("comments-drawer-{{ post.id }}");
+        if (drawer) {
+            drawer.classList.remove("hidden");
+        }
+    });
+</script>
+
+<!-- AJAX scripts for like, save, comment, delete operations -->
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Central toggleLike function defined in main.js will handle optimistic like interactions
+
+    function toggleSave(postId) {
+        const url = `/posts/${postId}/save/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const saveBtn = document.getElementById(`save-btn-${postId}`);
+                if (data.saved) {
+                    saveBtn.classList.remove('text-slate-500', 'hover:bg-slate-50');
+                    saveBtn.classList.add('text-indigo-600', 'bg-indigo-50/50');
+                } else {
+                    saveBtn.classList.remove('text-indigo-600', 'bg-indigo-50/50');
+                    saveBtn.classList.add('text-slate-500', 'hover:bg-slate-50');
+                }
+            }
+        });
+    }
+
+    function postComment(event, postId) {
+        event.preventDefault();
+        const form = event.target;
+        const input = form.querySelector('input[name="content"]');
+        const content = input.value;
+        const url = `/posts/${postId}/comment/`;
+        
+        const formData = new FormData();
+        formData.append('content', content);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                input.value = '';
+                const list = document.getElementById(`comments-list-${postId}`);
+                const noCommentsMsg = document.getElementById(`no-comments-msg-${postId}`);
+                if (noCommentsMsg) noCommentsMsg.remove();
+
+                const comment = data.comment;
+                let avatarHTML = '';
+                if (comment.author_avatar) {
+                    avatarHTML = `<img src="${comment.author_avatar}" alt="Avatar" class="w-full h-full object-cover">`;
+                } else {
+                    const initials = comment.author_name.split(' ').map(n => n[0]).join('');
+                    avatarHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500 to-indigo-600 text-white font-bold text-xs">${initials}</div>`;
+                }
+
+                const commentHTML = `
+                    <div class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50" id="comment-${comment.id}">
+                        <a href="/profile/${comment.author_username}/" class="h-8 w-8 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center">
+                            ${avatarHTML}
+                        </a>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <a href="/profile/${comment.author_username}/" class="text-xs font-extrabold text-slate-900 hover:text-brand-600 transition-colors truncate">
+                                    ${comment.author_name}
+                                </a>
+                                <span class="text-[9px] text-slate-400 font-semibold flex-shrink-0">${comment.created_at}</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed mt-1">
+                                ${comment.content}
+                            </p>
+                        </div>
+                        <button onclick="deleteComment(${comment.id})" class="text-[10px] font-bold text-rose-500 hover:text-rose-600 p-1 flex-shrink-0 transition-colors">
+                            Delete
+                        </button>
+                    </div>
+                `;
+
+                list.insertAdjacentHTML('beforeend', commentHTML);
+                
+                const commentsCounter = document.getElementById(`comments-count-${postId}`);
+                const count = list.children.length;
+                commentsCounter.textContent = `${count} Comment${count !== 1 ? 's' : ''}`;
+            }
+        });
+    }
+
+    function deleteComment(commentId) {
+        if (!confirm("Are you sure you want to delete this comment?")) return;
+        const url = `/comments/${commentId}/delete/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const commentEl = document.getElementById(`comment-${commentId}`);
+                const list = commentEl.parentElement;
+                const postId = list.id.split('-').pop();
+                commentEl.remove();
+                
+                const count = list.children.length;
+                const commentsCounter = document.getElementById(`comments-count-${postId}`);
+                commentsCounter.textContent = `${count} Comment${count !== 1 ? 's' : ''}`;
+                
+                if (count === 0) {
+                    list.innerHTML = `<p id="no-comments-msg-${postId}" class="text-xs text-slate-400 italic">No comments yet. Be the first to share your thoughts!</p>`;
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% load static %}
+<a href="{{ link_url|default:'/' }}" class="inline-flex items-center flex-shrink-0 group {{ custom_class|default:'' }}" aria-label="{{ site_branding.site_name }}">
+  <img src="{% if is_admin %}{{ site_branding.admin_logo_url }}{% else %}{{ site_branding.logo_url }}{% endif %}?v={{ site_branding.updated_at_timestamp }}"
+       alt="{{ site_branding.site_name }}"
+       class="object-contain transition-transform group-hover:scale-105 {{ img_class|default:'h-8 sm:h-9 md:h-10 w-auto max-h-10 max-w-[180px]' }}">
+  {% if show_text %}
+    <span class="text-base font-extrabold text-gradient tracking-tight {{ text_class|default:'' }}">{{ site_branding.site_name }}</span>
+  {% endif %}
+</a>

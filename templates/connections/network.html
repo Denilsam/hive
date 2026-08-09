@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}Hive | Network{% endblock %}
+
+{% block show_right_panel %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[85vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900 text-slate-800 animate-fade-up">
+  <div class="w-full space-y-6">
+
+    <!-- Header & Segmented Navigation Tabs -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Professional Network</h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Discover professionals, follow creators, and expand your network.</p>
+      </div>
+
+      <!-- Segmented Discovery Tabs -->
+      <div class="inline-flex p-1 bg-slate-800 rounded-xl border border-slate-700 shadow-inner" role="tablist">
+        <a href="{% url 'connections:network' %}" class="px-4 py-2 rounded-lg text-xs font-bold transition-all {% if request.path == '/network/' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+          Discovery
+        </a>
+        <a href="{% url 'connections:followers' %}" class="px-4 py-2 rounded-lg text-xs font-bold transition-all {% if request.path == '/network/followers/' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+          Followers
+        </a>
+        <a href="{% url 'connections:following' %}" class="px-4 py-2 rounded-lg text-xs font-bold transition-all {% if request.path == '/network/following/' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-400 hover:text-white{% endif %}">
+          Following
+        </a>
+      </div>
+    </div>
+
+    <!-- Clean Minimal Search Section (No Skill Dropdown) -->
+    <div class="bg-white/95 rounded-2xl p-5 border border-slate-200 shadow-md">
+      <form method="get" action="{% url 'connections:network' %}">
+        <div class="relative flex items-center">
+          <svg class="absolute left-4 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7 7 0 1016.65 16.65z"/>
+          </svg>
+          <input type="text" name="q" value="{{ query|default:'' }}" placeholder="Search members by name or username..." class="w-full pl-11 pr-24 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 text-sm">
+          <button type="submit" class="absolute right-2 bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg hover:bg-slate-800 transition-colors">
+            Search
+          </button>
+        </div>
+        {% if query %}
+          <div class="mt-2 text-right">
+            <a href="{% url 'connections:network' %}" class="text-xs text-rose-600 hover:underline font-bold">Clear Search</a>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Member Cards Grid (Responsive: 4 desktop, 3 laptop, 2 tablet, 1 mobile) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {% for user in users %}
+        <div class="bg-white/95 rounded-2xl overflow-hidden border border-slate-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full w-full p-5 text-center relative group" id="member-card-{{ user.id }}">
+          
+          <div class="space-y-3 flex-1 flex flex-col items-center">
+            <!-- Profile Picture -->
+            <a href="{% url 'profiles:profile_detail' username=user.username %}" class="relative inline-block mt-1">
+              <div class="avatar avatar-2xl rounded-2xl shadow-md border-2 border-white ring-2 ring-brand-500/20 group-hover:scale-105 transition-transform duration-300">
+                {% if user.profile.profile_image %}
+                  <img src="{{ user.profile.profile_image.url }}" alt="{{ user.first_name }}">
+                {% else %}
+                  <span class="text-xl font-black text-white">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</span>
+                {% endif %}
+              </div>
+            </a>
+
+            <!-- Name, Profession & Location -->
+            <div class="w-full">
+              <h3 class="text-base font-extrabold text-slate-900 truncate leading-snug">
+                <a href="{% url 'profiles:profile_detail' username=user.username %}" class="hover:text-brand-600 transition-colors">
+                  {{ user.first_name }} {{ user.last_name }}
+                </a>
+              </h3>
+              <p class="text-xs font-semibold text-slate-500 truncate mt-0.5">
+                {{ user.profile.headline|default:"Professional on Hive" }}
+              </p>
+              {% if user.profile.location %}
+                <p class="text-[10px] text-slate-400 font-medium truncate mt-0.5 flex items-center justify-center gap-1">
+                  <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  {{ user.profile.location }}
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Short Bio (2 lines max) -->
+            {% if user.profile.bio %}
+              <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed px-1">
+                {{ user.profile.bio }}
+              </p>
+            {% endif %}
+
+            <!-- Followers & Following Stats -->
+            <div class="flex items-center justify-center gap-4 py-2 px-3 bg-slate-50/80 rounded-xl border border-slate-100 w-full mt-auto text-xs font-semibold text-slate-600">
+              <div>
+                <span class="font-extrabold text-slate-900" id="follower-count-{{ user.id }}">{{ user.followers_count|default:0 }}</span>
+                <span class="text-[10px] text-slate-400 block uppercase font-bold">Followers</span>
+              </div>
+              <div class="h-6 border-r border-slate-200"></div>
+              <div>
+                <span class="font-extrabold text-slate-900" id="following-count-{{ user.id }}">{{ user.following_count|default:0 }}</span>
+                <span class="text-[10px] text-slate-400 block uppercase font-bold">Following</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action Buttons (Always aligned at the bottom) -->
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-center gap-2">
+            <!-- Follow / Following Toggle Button -->
+            <button type="button" 
+                    onclick="handleFollowToggle({{ user.id }})" 
+                    id="follow-btn-{{ user.id }}" 
+                    class="flex-1 py-2 rounded-xl text-xs font-bold transition-colors {% if user.is_following %}bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200{% else %}bg-brand-600 hover:bg-brand-500 text-white shadow-sm{% endif %}">
+              {% if user.is_following %}Following{% else %}Follow{% endif %}
+            </button>
+
+            <!-- Message Button -->
+            <a href="{% url 'chat:start_conversation' user_id=user.id %}" class="inline-flex items-center justify-center py-2 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+              Message
+            </a>
+
+            <!-- View Profile -->
+            <a href="{% url 'profiles:profile_detail' username=user.username %}" class="inline-flex items-center justify-center py-2 px-3 text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">
+              View Profile
+            </a>
+          </div>
+
+        </div>
+      {% empty %}
+        <div class="col-span-full bg-white/95 rounded-2xl p-12 border border-slate-200 shadow-md text-center">
+          <div class="w-16 h-16 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center mx-auto mb-3 text-brand-600">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+            </svg>
+          </div>
+          <h3 class="text-base font-extrabold text-slate-900 mb-1">No members found</h3>
+          <p class="text-xs text-slate-400">Try searching for a different name or username.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if users.has_other_pages %}
+      <div class="flex justify-center gap-2 pt-4">
+        {% if users.has_previous %}
+          <a href="?page={{ users.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-250 bg-white hover:bg-slate-50 text-xs font-bold text-slate-650">&laquo; Previous</a>
+        {% endif %}
+        
+        <span class="px-3 py-1.5 text-xs text-white font-bold bg-slate-800 rounded-lg">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+        
+        {% if users.has_next %}
+          <a href="?page={{ users.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-250 bg-white hover:bg-slate-50 text-xs font-bold text-slate-650">Next &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function handleFollowToggle(userId) {
+    const csrftoken = getCookie('csrftoken');
+    const url = `/network/follow/${userId}/`;
+    
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrftoken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const btn = document.getElementById(`follow-btn-${userId}`);
+        const followerCountEl = document.getElementById(`follower-count-${userId}`);
+
+        if (data.following) {
+          btn.textContent = "Following";
+          btn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200";
+        } else {
+          btn.textContent = "Follow";
+          btn.className = "flex-1 py-2 rounded-xl text-xs font-bold transition-colors bg-brand-600 hover:bg-brand-500 text-white shadow-sm";
+        }
+
+        if (followerCountEl && data.follower_count !== undefined) {
+          followerCountEl.textContent = data.follower_count;
+        }
+      } else {
+        console.error("Follow error:", data.error);
+      }
+    })
+    .catch(err => {
+      console.error("Failed to toggle follow:", err);
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Platform & Branding Settings | {{ site_branding.site_name }} Admin{% endblock %}
+
+{% block admin_content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Platform & Branding Settings</h1>
+    <p class="text-xs text-slate-500 mt-1">Customize platform branding, logos, site name, and general site behavior.</p>
+  </div>
+
+  {% if messages %}
+    <div class="space-y-2">
+      {% for message in messages %}
+        <div class="p-3.5 rounded-xl text-xs font-semibold border {% if message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800{% elif message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800{% else %}bg-slate-50 border-slate-200 text-slate-800{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'admin_dashboard:settings' %}" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+
+    <!-- BRANDING SECTION CARD -->
+    <div class="card-admin p-6 space-y-6">
+      <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 tracking-tight uppercase">Branding</h2>
+          <p class="text-[11px] text-slate-500 mt-0.5">Customize how {{ site_branding.site_name }} appears across all platforms and navigation bars.</p>
+        </div>
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider">Super Admin Only</span>
+      </div>
+
+      <!-- Site Name -->
+      <div>
+        <label for="id_site_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Site Name</label>
+        <input type="text" id="id_site_name" name="site_name" value="{{ settings_obj.site_name }}" required
+          class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-semibold text-slate-900">
+        <p class="text-[11px] text-slate-400 mt-1">Controls the display name across navbars, page titles, and system notices.</p>
+      </div>
+
+      <!-- Primary Logo -->
+      <div class="pt-4 border-t border-slate-100">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Primary Logo</label>
+            <p class="text-[11px] text-slate-400 mt-0.5">PNG, JPG, or WEBP • Maximum 2 MB • Recommended approx 512×512px transparent wordmark/icon.</p>
+          </div>
+          {% if site_branding.is_custom_logo %}
+            <button type="button" onclick="confirmReset('reset_logo', 'Primary Logo')" class="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200">
+              Reset to Default
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div class="w-24 h-24 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 shadow-sm flex-shrink-0 relative overflow-hidden">
+            <img id="logo-preview" src="{{ site_branding.logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="Primary Logo Preview" class="max-h-full max-w-full object-contain">
+          </div>
+          <div class="flex-1 w-full space-y-2">
+            <input type="file" id="id_logo" name="logo" accept="image/png,image/jpeg,image/webp" onchange="previewImage(this, 'logo-preview')"
+              class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+            <p id="logo-file-info" class="text-[11px] font-semibold text-slate-500 truncate">
+              {% if settings_obj.logo %}Current file: {{ settings_obj.logo.name }}{% else %}Using default Hive logo asset{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Favicon -->
+      <div class="pt-4 border-t border-slate-100">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Favicon</label>
+            <p class="text-[11px] text-slate-400 mt-0.5">PNG, JPG, WEBP, ICO, or SVG • Maximum 2 MB • Recommended square image (32×32 or 64×64).</p>
+          </div>
+          {% if site_branding.is_custom_favicon %}
+            <button type="button" onclick="confirmReset('reset_favicon', 'Favicon')" class="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200">
+              Reset to Default
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div class="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 shadow-sm flex-shrink-0 relative overflow-hidden">
+            <img id="favicon-preview" src="{{ site_branding.favicon_url }}?v={{ site_branding.updated_at_timestamp }}" alt="Favicon Preview" class="max-h-full max-w-full object-contain">
+          </div>
+          <div class="flex-1 w-full space-y-2">
+            <input type="file" id="id_favicon" name="favicon" accept="image/png,image/jpeg,image/webp,image/x-icon,image/svg+xml" onchange="previewImage(this, 'favicon-preview')"
+              class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+            <p id="favicon-file-info" class="text-[11px] font-semibold text-slate-500 truncate">
+              {% if settings_obj.favicon %}Current file: {{ settings_obj.favicon.name }}{% else %}Using default Hive favicon asset{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Logo -->
+      <div class="pt-4 border-t border-slate-100">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Logo (Optional)</label>
+            <p class="text-[11px] text-slate-400 mt-0.5">Custom logo for Hive Admin portal header/sidebar. Falls back to Primary Logo if unassigned.</p>
+          </div>
+          {% if site_branding.is_custom_admin_logo %}
+            <button type="button" onclick="confirmReset('reset_admin_logo', 'Admin Logo')" class="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200">
+              Reset to Default
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div class="w-24 h-24 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 shadow-sm flex-shrink-0 relative overflow-hidden">
+            <img id="admin-logo-preview" src="{{ site_branding.admin_logo_url }}?v={{ site_branding.updated_at_timestamp }}" alt="Admin Logo Preview" class="max-h-full max-w-full object-contain">
+          </div>
+          <div class="flex-1 w-full space-y-2">
+            <input type="file" id="id_admin_logo" name="admin_logo" accept="image/png,image/jpeg,image/webp" onchange="previewImage(this, 'admin-logo-preview')"
+              class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+            <p id="admin-logo-file-info" class="text-[11px] font-semibold text-slate-500 truncate">
+              {% if settings_obj.admin_logo %}Current file: {{ settings_obj.admin_logo.name }}{% else %}Falling back to Primary / Default Hive logo{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERAL SETTINGS CARD -->
+    <div class="card-admin p-6 space-y-4">
+      <h2 class="text-sm font-extrabold text-slate-900 tracking-tight uppercase border-b border-slate-100 pb-3">General Configuration</h2>
+
+      <div>
+        <label for="id_contact_email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contact Email</label>
+        <input type="email" id="id_contact_email" name="contact_email" value="{{ settings_obj.contact_email }}" required
+          class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-900">
+      </div>
+
+      <div class="pt-2 space-y-3">
+        <label class="flex items-center gap-3 text-xs font-semibold text-slate-800 cursor-pointer">
+          <input type="checkbox" name="maintenance_mode" {% if settings_obj.maintenance_mode %}checked{% endif %} class="rounded text-emerald-500 focus:ring-emerald-500 w-4 h-4">
+          <span>Enable Maintenance Mode</span>
+        </label>
+
+        <label class="flex items-center gap-3 text-xs font-semibold text-slate-800 cursor-pointer">
+          <input type="checkbox" name="registration_enabled" {% if settings_obj.registration_enabled %}checked{% endif %} class="rounded text-emerald-500 focus:ring-emerald-500 w-4 h-4">
+          <span>Allow New Registrations</span>
+        </label>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100">
+        <button type="submit" class="w-full py-3 text-xs font-extrabold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-all shadow-md shadow-emerald-500/20">
+          Save Branding & Settings
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- RESET CONFIRMATION MODAL -->
+<div id="reset-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 text-center">
+    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    </div>
+    <div>
+      <h3 class="text-base font-extrabold text-slate-900" id="reset-modal-title">Reset Branding Asset</h3>
+      <p class="text-xs text-slate-500 mt-1" id="reset-modal-msg">Are you sure you want to reset this item to default?</p>
+    </div>
+
+    <form id="reset-form" method="post" action="{% url 'admin_dashboard:settings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="reset-action-input" value="">
+      <div class="flex items-center gap-3 pt-2">
+        <button type="button" onclick="closeResetModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+          Cancel
+        </button>
+        <button type="submit" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20">
+          Reset Asset
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function previewImage(input, previewId) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size exceeds maximum limit of 2 MB.");
+        input.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById(previewId).src = e.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function confirmReset(actionName, assetLabel) {
+    document.getElementById('reset-action-input').value = actionName;
+    document.getElementById('reset-modal-title').textContent = "Reset " + assetLabel;
+    document.getElementById('reset-modal-msg').textContent = "Are you sure you want to reset the " + assetLabel.toLowerCase() + " to the default static asset?";
+    document.getElementById('reset-modal').classList.remove('hidden');
+  }
+
+  function closeResetModal() {
+    document.getElementById('reset-modal').classList.add('hidden');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,487 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile | Hive{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900">
+    <div class="w-full space-y-8 text-slate-800">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 text-white">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Edit Professional Profile</h1>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">Keep your identity up to date. Showcase your growth.</p>
+            </div>
+            <a href="{% url 'profiles:profile_detail' username=request.user.username %}" class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-semibold hover:bg-slate-700 transition-colors">
+                View Public Profile
+            </a>
+        </div>
+
+        <!-- 1. Profile Core Form -->
+        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md">
+            <h2 class="text-lg font-extrabold text-slate-900 mb-6 pb-2 border-b border-slate-100">Basic Information</h2>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Images Area -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- Profile Photo -->
+                    <div class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <div class="h-20 w-20 rounded-2xl overflow-hidden bg-slate-200 border border-slate-300 shadow-sm relative flex-shrink-0">
+                            {% if profile.profile_image %}
+                                <img id="profile-preview" src="{{ profile.profile_image.url }}" alt="Profile Avatar" class="w-full h-full object-cover">
+                            {% else %}
+                                <div id="profile-preview-placeholder" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold text-xl">
+                                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-slate-700">Profile Image</span>
+                            <label for="profile-image-upload" class="mt-1.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 cursor-pointer transition-colors shadow-sm">
+                                Choose Image
+                            </label>
+                            {{ profile_form.profile_image }}
+                            {% if profile_form.profile_image.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.profile_image.errors.0 }}</p>
+                            {% endif %}
+                            <p class="text-[10px] text-slate-400 mt-1">Maximum size allowed: 2MB.</p>
+                        </div>
+                    </div>
+
+                    <!-- Cover Photo -->
+                    <div class="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <div class="h-20 w-32 rounded-xl overflow-hidden bg-slate-200 border border-slate-300 shadow-sm relative flex-shrink-0">
+                            {% if profile.cover_image %}
+                                <img id="cover-preview" src="{{ profile.cover_image.url }}" alt="Cover Banner" class="w-full h-full object-cover">
+                            {% else %}
+                                <div id="cover-preview-placeholder" class="w-full h-full bg-gradient-to-r from-brand-400 to-indigo-600"></div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="block text-sm font-semibold text-slate-700">Cover Banner</span>
+                            <label for="cover-image-upload" class="mt-1.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 cursor-pointer transition-colors shadow-sm">
+                                Choose Banner
+                            </label>
+                            {{ profile_form.cover_image }}
+                            {% if profile_form.cover_image.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.cover_image.errors.0 }}</p>
+                            {% endif %}
+                            <p class="text-[10px] text-slate-400 mt-1">Maximum size allowed: 2MB.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Names & Headline -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">First name</label>
+                        {{ profile_form.first_name }}
+                        {% if profile_form.first_name.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Last name</label>
+                        {{ profile_form.last_name }}
+                        {% if profile_form.last_name.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Headline</label>
+                    {{ profile_form.headline }}
+                    {% if profile_form.headline.errors %}
+                        <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.headline.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">About (Bio)</label>
+                    {{ profile_form.bio }}
+                    {% if profile_form.bio.errors %}
+                        <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.bio.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Location</label>
+                        {{ profile_form.location }}
+                        {% if profile_form.location.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.location.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Phone number</label>
+                        {{ profile_form.phone_number }}
+                        {% if profile_form.phone_number.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ profile_form.phone_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Socials -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Personal Website</label>
+                        {{ profile_form.website }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">LinkedIn URL</label>
+                        {{ profile_form.linkedin_url }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">GitHub URL</label>
+                        {{ profile_form.github_url }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Twitter/X URL</label>
+                        {{ profile_form.twitter_url }}
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-brand-500 transition-all duration-200">
+                        Save Core Details
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 2. Skills Section -->
+        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md">
+            <h2 class="text-lg font-extrabold text-slate-900 mb-4 pb-2 border-b border-slate-100">Manage Skills</h2>
+            
+            <!-- List skills -->
+            {% if skills %}
+                <div class="flex flex-wrap gap-2.5 mb-6">
+                    {% for us in skills %}
+                        <div id="user-skill-item-{{ us.pk }}" class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-100/50 pl-3 pr-1.5 py-1 text-xs font-semibold text-brand-700 shadow-sm">
+                            <span>{{ us.skill.name }}</span>
+                            <span class="text-[9px] uppercase font-bold text-brand-400 bg-brand-100/50 px-1 py-0.5 rounded-md">{{ us.get_level_display }}</span>
+                            <form id="delete-skill-form-{{ us.pk }}" action="{% url 'profiles:skill_delete' pk=us.pk %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-skill-form-{{ us.pk }}', objectType: 'skill', objectTitle: '{{ us.skill.name|escapejs }}', targetElementId: 'user-skill-item-{{ us.pk }}' })" class="hover:bg-brand-100 rounded-full h-5 w-5 flex items-center justify-center text-slate-400 hover:text-rose-600 transition-colors">&times;</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 mb-6">No skills added yet. Add skills to show off your expertise!</p>
+            {% endif %}
+
+            <!-- Add Skill Form -->
+            <form action="{% url 'profiles:skill_add' %}" method="post" class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row gap-4 items-end">
+                {% csrf_token %}
+                <div class="flex-grow w-full">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Add Skill Name</label>
+                    {{ skill_form.skill_name }}
+                    {% if skill_form.skill_name.errors %}
+                        <p class="mt-1 text-xs text-rose-600 font-medium">{{ skill_form.skill_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div class="w-full sm:w-48">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Proficiency Level</label>
+                    {{ skill_form.level }}
+                </div>
+                <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-3 text-sm font-semibold text-white transition-colors">
+                    Add Skill
+                </button>
+            </form>
+        </div>
+
+        <!-- 3. Work Experience Section -->
+        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md">
+            <h2 class="text-lg font-extrabold text-slate-900 mb-4 pb-2 border-b border-slate-100">Work Experience</h2>
+            
+            <!-- List experience -->
+            {% if experience_list %}
+                <div class="space-y-4 mb-6">
+                    {% for exp in experience_list %}
+                        <div id="exp-item-{{ exp.pk }}" class="p-4 rounded-xl border border-slate-150 bg-slate-50/50 flex justify-between items-start gap-4">
+                            <div>
+                                <h3 class="text-sm sm:text-base font-bold text-slate-900">{{ exp.role }}</h3>
+                                <p class="text-xs sm:text-sm text-slate-600 font-semibold">{{ exp.company_name }} &middot; {{ exp.get_employment_type_display }}</p>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    {{ exp.start_date|date:"M Y" }} - {% if exp.currently_working %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}
+                                </p>
+                            </div>
+                            <form id="delete-exp-form-{{ exp.pk }}" action="{% url 'profiles:experience_delete' pk=exp.pk %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-exp-form-{{ exp.pk }}', objectType: 'experience entry', objectTitle: '{{ exp.role|escapejs }} at {{ exp.company_name|escapejs }}', targetElementId: 'exp-item-{{ exp.pk }}' })" class="inline-flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-colors">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 mb-6">No experience listed yet.</p>
+            {% endif %}
+
+            <!-- Add Experience Box (Always Visible Form) -->
+            <div class="bg-slate-50 rounded-xl border border-slate-100 p-4">
+                <h3 class="text-sm font-bold text-slate-800 mb-3">Add New Experience</h3>
+                <form action="{% url 'profiles:experience_add' %}" method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Company name</label>
+                            {{ experience_form.company_name }}
+                            {% if experience_form.company_name.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ experience_form.company_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Role / Job Title</label>
+                            {{ experience_form.role }}
+                            {% if experience_form.role.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ experience_form.role.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Employment type</label>
+                        {{ experience_form.employment_type }}
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Start Date</label>
+                            {{ experience_form.start_date }}
+                            {% if experience_form.start_date.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ experience_form.start_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">End Date</label>
+                            {{ experience_form.end_date }}
+                            {% if experience_form.end_date.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ experience_form.end_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        {{ experience_form.currently_working }}
+                        <label for="{{ experience_form.currently_working.id_for_label }}" class="text-xs font-semibold text-slate-700 cursor-pointer">I currently work here</label>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Description / Key Achievements</label>
+                        {{ experience_form.description }}
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-white transition-colors mt-2">
+                        Add Experience
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 4. Education Section -->
+        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md">
+            <h2 class="text-lg font-extrabold text-slate-900 mb-4 pb-2 border-b border-slate-100">Education Background</h2>
+            
+            <!-- List education -->
+            {% if education_list %}
+                <div class="space-y-4 mb-6">
+                    {% for edu in education_list %}
+                        <div id="edu-item-{{ edu.pk }}" class="p-4 rounded-xl border border-slate-150 bg-slate-50/50 flex justify-between items-start gap-4">
+                            <div>
+                                <h3 class="text-sm sm:text-base font-bold text-slate-900">{{ edu.degree }} in {{ edu.field_of_study }}</h3>
+                                <p class="text-xs sm:text-sm text-slate-600 font-semibold">{{ edu.institution }}</p>
+                                <p class="text-xs text-slate-400 mt-1">{{ edu.start_year }} - {{ edu.end_year|default:"Present" }}</p>
+                            </div>
+                            <form id="delete-edu-form-{{ edu.pk }}" action="{% url 'profiles:education_delete' pk=edu.pk %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-edu-form-{{ edu.pk }}', objectType: 'education entry', objectTitle: '{{ edu.degree|escapejs }} at {{ edu.institution|escapejs }}', targetElementId: 'edu-item-{{ edu.pk }}' })" class="inline-flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-colors">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 mb-6">No education entries listed yet.</p>
+            {% endif %}
+
+            <!-- Add Education Box (Always Visible Form) -->
+            <div class="bg-slate-50 rounded-xl border border-slate-100 p-4">
+                <h3 class="text-sm font-bold text-slate-800 mb-3">Add New Education</h3>
+                <form action="{% url 'profiles:education_add' %}" method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Degree</label>
+                            {{ education_form.degree }}
+                            {% if education_form.degree.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ education_form.degree.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Field of study</label>
+                            {{ education_form.field_of_study }}
+                            {% if education_form.field_of_study.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ education_form.field_of_study.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Institution / School / College</label>
+                        {{ education_form.institution }}
+                        {% if education_form.institution.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ education_form.institution.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Start Year</label>
+                            {{ education_form.start_year }}
+                            {% if education_form.start_year.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ education_form.start_year.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">End Year (or Expected)</label>
+                            {{ education_form.end_year }}
+                            {% if education_form.end_year.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ education_form.end_year.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+                        {{ education_form.description }}
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-white transition-colors mt-2">
+                        Add Education
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 5. Certifications Section -->
+        <div class="bg-white/95 rounded-2xl p-6 border border-slate-200 shadow-md">
+            <h2 class="text-lg font-extrabold text-slate-900 mb-4 pb-2 border-b border-slate-100">Certificates & Achievements</h2>
+            
+            <!-- List certifications -->
+            {% if certificates %}
+                <div class="space-y-4 mb-6">
+                    {% for cert in certificates %}
+                        <div id="cert-item-{{ cert.pk }}" class="p-4 rounded-xl border border-slate-150 bg-slate-50/50 flex justify-between items-start gap-4">
+                            <div>
+                                <h3 class="text-sm sm:text-base font-bold text-slate-900">{{ cert.title }}</h3>
+                                <p class="text-xs sm:text-sm text-slate-600">{{ cert.organization }}</p>
+                                <p class="text-xs text-slate-400 mt-1">Issued: {{ cert.issue_date|date:"F Y" }}</p>
+                            </div>
+                            <form id="delete-cert-form-{{ cert.pk }}" action="{% url 'profiles:certificate_delete' pk=cert.pk %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="button" onclick="openGlobalDeleteModal({ formId: 'delete-cert-form-{{ cert.pk }}', objectType: 'certificate', objectTitle: '{{ cert.title|escapejs }}', targetElementId: 'cert-item-{{ cert.pk }}' })" class="inline-flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-colors">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-400 mb-6">No certifications listed yet.</p>
+            {% endif %}
+
+            <!-- Add Certificate Box (Always Visible Form) -->
+            <div class="bg-slate-50 rounded-xl border border-slate-100 p-4">
+                <h3 class="text-sm font-bold text-slate-800 mb-3">Add New Certification</h3>
+                <form action="{% url 'profiles:certificate_add' %}" method="post" enctype="multipart/form-data" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Certificate Title</label>
+                            {{ certificate_form.title }}
+                            {% if certificate_form.title.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ certificate_form.title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Issuing Organization</label>
+                            {{ certificate_form.organization }}
+                            {% if certificate_form.organization.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ certificate_form.organization.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Issue Date</label>
+                            {{ certificate_form.issue_date }}
+                            {% if certificate_form.issue_date.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ certificate_form.issue_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Verification URL (Optional)</label>
+                            {{ certificate_form.certificate_url }}
+                            {% if certificate_form.certificate_url.errors %}
+                                <p class="mt-1 text-xs text-rose-600 font-medium">{{ certificate_form.certificate_url.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Upload Certificate File (Optional, max 2MB)</label>
+                        {{ certificate_form.certificate_file }}
+                        {% if certificate_form.certificate_file.errors %}
+                            <p class="mt-1 text-xs text-rose-600 font-medium">{{ certificate_form.certificate_file.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-white transition-colors mt-2">
+                        Add Certification
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Live preview files upload script
+    document.getElementById('profile-image-upload').onchange = function (evt) {
+        var tgt = evt.target || window.event.srcElement,
+            files = tgt.files;
+        if (FileReader && files && files.length) {
+            var fr = new FileReader();
+            fr.onload = function () {
+                var preview = document.getElementById('profile-preview');
+                if (preview) {
+                    preview.src = fr.result;
+                } else {
+                    var placeholder = document.getElementById('profile-preview-placeholder');
+                    if (placeholder) {
+                        placeholder.outerHTML = '<img id="profile-preview" src="' + fr.result + '" class="w-full h-full object-cover">';
+                    }
+                }
+            }
+            fr.readAsDataURL(files[0]);
+        }
+    }
+
+    document.getElementById('cover-image-upload').onchange = function (evt) {
+        var tgt = evt.target || window.event.srcElement,
+            files = tgt.files;
+        if (FileReader && files && files.length) {
+            var fr = new FileReader();
+            fr.onload = function () {
+                var preview = document.getElementById('cover-preview');
+                if (preview) {
+                    preview.src = fr.result;
+                } else {
+                    var placeholder = document.getElementById('cover-preview-placeholder');
+                    if (placeholder) {
+                        placeholder.outerHTML = '<img id="cover-preview" src="' + fr.result + '" class="w-full h-full object-cover">';
+                    }
+                }
+            }
+            fr.readAsDataURL(files[0]);
+        }
+    }
+</script>
+{% endblock %}

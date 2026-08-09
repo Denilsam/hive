@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Portfolios | Hive{% endblock %}
+
+{% block show_right_panel %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[85vh] bg-slate-900/50 rounded-3xl p-4 sm:p-8 shadow-xl border border-slate-800 bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-900">
+    <div class="w-full space-y-6 text-slate-800">
+        
+        <!-- Explore header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-800 text-white gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Explore Developer Portfolios</h1>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">Discover, filter, and review projects created by students, creators, and freelancers.</p>
+            </div>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'portfolio:project_create' %}" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-semibold hover:bg-brand-500 transition-colors shadow-md">
+                    + Add Project
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Search and Filters Form Card -->
+        <div class="bg-white/95 rounded-2xl p-5 border border-slate-200 shadow-md">
+            <form method="get" class="space-y-4">
+                <!-- Search text box -->
+                <div class="relative flex items-center">
+                    <input type="text" name="q" value="{{ query }}" placeholder="Search by project title, tech stack, category, or creator name..." class="w-full pl-4 pr-24 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 text-sm">
+                    <button type="submit" class="absolute right-2 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-slate-800 transition-colors">
+                        Search
+                    </button>
+                </div>
+
+                <!-- Dropdown filters -->
+                <div class="flex flex-wrap gap-3 items-center text-xs font-semibold">
+                    <select name="category" onchange="this.form.submit()" class="px-3 py-2 rounded-lg border border-slate-200 bg-white/50 text-slate-700">
+                        <option value="">All Categories</option>
+                        {% for cat_val, cat_lbl in categories %}
+                            <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_lbl }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="technology" onchange="this.form.submit()" class="px-3 py-2 rounded-lg border border-slate-200 bg-white/50 text-slate-700">
+                        <option value="">All Technologies</option>
+                        {% for skill in available_skills %}
+                            <option value="{{ skill.name }}" {% if selected_tech == skill.name %}selected{% endif %}>{{ skill.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 bg-white/50 border border-slate-200 px-3 py-2 rounded-lg select-none">
+                        <input type="checkbox" name="featured" value="true" onchange="this.form.submit()" {% if selected_featured %}checked{% endif %} class="h-4.5 w-4.5 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+                        <span>Show Featured Only</span>
+                    </label>
+
+                    {% if query or selected_category or selected_tech or selected_featured %}
+                        <a href="{% url 'portfolio:portfolio_explore' %}" class="text-rose-600 hover:text-rose-700 hover:underline transition-colors pl-2">
+                            Reset Filters
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Grid: Responsive showcase cards matching Marketplace structure -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {% for project in projects %}
+                {% include 'portfolio/_components/project_card.html' with project=project %}
+            {% empty %}
+                <div class="col-span-full bg-white/95 rounded-2xl p-12 border border-slate-200 shadow-md text-center">
+                    <p class="text-sm text-slate-400 italic">No projects found matching the criteria. Try adjusting your search term or filters!</p>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Reports Queue | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Reports Queue</h1>
+    <p class="text-xs text-slate-500 mt-1">Review, resolve, or reject reported user behavior and content.</p>
+  </div>
+
+  <div class="card-admin p-4">
+    <form method="get" class="flex gap-2">
+      <select name="status" class="px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+        <option value="">All Statuses</option>
+        {% for code, name in status_choices %}
+          <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl">Filter</button>
+    </form>
+  </div>
+
+  <div class="card-admin overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-bold uppercase tracking-wider">
+            <th class="py-3 px-4">Reporter</th>
+            <th class="py-3 px-4">Reported Target</th>
+            <th class="py-3 px-4">Reason</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">Filed Date</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in reports %}
+            <tr class="hover:bg-slate-50/50 transition-colors">
+              <td class="py-3 px-4 font-bold text-slate-900">{{ r.reporter.email }}</td>
+              <td class="py-3 px-4 text-slate-700">{{ r.reported_user.email|default:"Content Object" }}</td>
+              <td class="py-3 px-4 font-semibold text-slate-800">{{ r.reason }}</td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold 
+                  {% if r.status == 'PENDING' %}bg-amber-50 text-amber-700
+                  {% elif r.status == 'RESOLVED' %}bg-emerald-50 text-emerald-700
+                  {% elif r.status == 'REJECTED' %}bg-rose-50 text-rose-700
+                  {% else %}bg-blue-50 text-blue-700{% endif %}">
+                  {{ r.get_status_display }}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-slate-400">{{ r.created_at|date:"M d, H:i" }}</td>
+              <td class="py-3 px-4 text-right">
+                <form action="{% url 'admin_dashboard:report_action' pk=r.pk %}" method="post" class="inline-flex gap-1">
+                  {% csrf_token %}
+                  <button type="submit" name="status" value="RESOLVED" class="px-2 py-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md">Resolve</button>
+                  <button type="submit" name="status" value="REJECTED" class="px-2 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-md">Reject</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-400">No reports found in queue.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

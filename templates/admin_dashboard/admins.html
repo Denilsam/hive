@@ -1,0 +1,63 @@
+{% extends 'admin_dashboard/base_admin.html' %}
+{% block title %}Admin Management | Hive Admin{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Admin Management & RBAC</h1>
+      <p class="text-xs text-slate-500 mt-1">Super Admin controls for assigning roles and granular permissions.</p>
+    </div>
+    <a href="{% url 'admin_dashboard:admin_create' %}" class="px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-all self-start sm:self-auto">+ Create New Admin</a>
+  </div>
+
+  <div class="card-admin overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead>
+          <tr class="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-bold uppercase tracking-wider">
+            <th class="py-3 px-4">Admin Email</th>
+            <th class="py-3 px-4">Assigned Role</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">Created Date</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for profile in admin_profiles %}
+            <tr class="hover:bg-slate-50/50 transition-colors">
+              <td class="py-3 px-4 font-bold text-slate-900">{{ profile.user.email }}</td>
+              <td class="py-3 px-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold 
+                  {% if profile.role == 'SUPER_ADMIN' %}bg-purple-50 text-purple-700 border border-purple-200
+                  {% else %}bg-emerald-50 text-emerald-700{% endif %}">
+                  {{ profile.get_role_display }}
+                </span>
+              </td>
+              <td class="py-3 px-4">
+                {% if profile.is_active %}
+                  <span class="text-emerald-600 font-bold">Active</span>
+                {% else %}
+                  <span class="text-rose-600 font-bold">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="py-3 px-4 text-slate-400">{{ profile.created_at|date:"M d, Y" }}</td>
+              <td class="py-3 px-4 text-right">
+                {% if profile.role != 'SUPER_ADMIN' %}
+                  <a href="{% url 'admin_dashboard:admin_permissions' pk=profile.pk %}" class="px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-100">Edit Permissions</a>
+                {% else %}
+                  <span class="text-[10px] text-slate-400 font-semibold italic">Owner (Protected)</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-8 text-center text-slate-400">No admin profiles configured.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
