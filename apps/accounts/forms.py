@@ -34,7 +34,8 @@ class RegisterForm(forms.ModelForm):
         choices=[
             ('STUDENT', 'Student'),
             ('CREATOR', 'Creator'),
-            ('FREELANCER', 'Freelancer')
+            ('FREELANCER', 'Freelancer'),
+            ('ORGANIZATION', 'Organization')
         ],
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 transition-all'
@@ -142,7 +143,8 @@ class SelectAccountTypeForm(forms.ModelForm):
         choices=[
             ('STUDENT', 'Student'),
             ('CREATOR', 'Creator'),
-            ('FREELANCER', 'Freelancer')
+            ('FREELANCER', 'Freelancer'),
+            ('ORGANIZATION', 'Organization')
         ],
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 transition-all'

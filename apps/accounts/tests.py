@@ -420,5 +420,33 @@ class AuthenticationSystemTests(TestCase):
         })
         self.assertRedirects(login_response, notif_url, fetch_redirect_response=False)
 
+    def test_all_account_types_registration(self):
+        account_types = ['STUDENT', 'CREATOR', 'FREELANCER', 'ORGANIZATION']
+        for i, acc_type in enumerate(account_types):
+            email = f"user_{acc_type.lower()}@example.com"
+            data = {
+                'first_name': 'Test',
+                'last_name': 'User',
+                'email': email,
+                'account_type': acc_type,
+                'password': 'StrongPassword123!',
+                'confirm_password': 'StrongPassword123!'
+            }
+            response = self.client.post(self.register_url, data)
+            self.assertEqual(response.status_code, 302, f"Failed for account_type {acc_type}")
+            user = User.objects.get(email=email)
+            self.assertEqual(user.account_type, acc_type)
+            self.assertFalse(user.is_active)
+            self.assertFalse(user.is_verified)
+
+    def test_invalid_account_type_rejected(self):
+        invalid_data = self.user_data.copy()
+        invalid_data['email'] = 'invalid_acc@example.com'
+        invalid_data['account_type'] = 'INVALID_TYPE'
+        response = self.client.post(self.register_url, invalid_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('account_type', response.context['form'].errors)
+
+
 
 
