@@ -369,3 +369,116 @@ class PortfolioSystemTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Project.objects.filter(pk=project.pk).exists())
 
+    def test_feed_post_appears_in_portfolio_posts_single_record(self):
+        self.client.login(email='owner@example.com', password='StrongPassword123!')
+        
+        # 1. Create post in Feed
+        create_post_url = reverse('posts:create')
+        response = self.client.post(create_post_url, {
+            'content': 'Built a Django networking platform...',
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # 2. Verify only ONE Post record exists in database
+        self.assertEqual(Post.objects.count(), 1)
+        post = Post.objects.first()
+        self.assertEqual(post.author, self.user1)
+        self.assertEqual(post.content, 'Built a Django networking platform...')
+
+        # 3. Verify post appears in Feed
+        feed_response = self.client.get(reverse('posts:feed'))
+        self.assertEqual(feed_response.status_code, 200)
+        self.assertIn(post, feed_response.context['posts'])
+
+        # 4. Verify same post appears in user's Portfolio -> Posts
+        portfolio_url = reverse('portfolio:portfolio_detail', kwargs={'username': self.user1.username})
+        port_response = self.client.get(portfolio_url)
+        self.assertEqual(port_response.status_code, 200)
+        self.assertIn(post, port_response.context['portfolio_posts'])
+
+    def test_portfolio_posts_isolation_between_users(self):
+        # User 1 creates post
+        post1 = Post.objects.create(author=self.user1, content='User1 feed post')
+        # User 2 creates post
+        post2 = Post.objects.create(author=self.user2, content='User2 feed post')
+
+        # View User 1's portfolio
+        port_url_1 = reverse('portfolio:portfolio_detail', kwargs={'username': self.user1.username})
+        resp1 = self.client.get(port_url_1)
+        posts1 = list(resp1.context['portfolio_posts'])
+        self.assertIn(post1, posts1)
+        self.assertNotIn(post2, posts1)
+
+        # View User 2's portfolio
+        port_url_2 = reverse('portfolio:portfolio_detail', kwargs={'username': self.user2.username})
+        resp2 = self.client.get(port_url_2)
+        posts2 = list(resp2.context['portfolio_posts'])
+        self.assertIn(post2, posts2)
+        self.assertNotIn(post1, posts2)
+
+    def test_portfolio_posts_visibility_and_security_checks(self):
+        # Create public, connections, and private post for user1
+        pub_post = Post.objects.create(author=self.user1, content='Public Post', visibility='PUBLIC')
+        conn_post = Post.objects.create(author=self.user1, content='Connections Post', visibility='CONNECTIONS')
+        priv_post = Post.objects.create(author=self.user1, content='Private Post', visibility='PRIVATE')
+
+        port_url = reverse('portfolio:portfolio_detail', kwargs={'username': self.user1.username})
+
+        # Owner can view all posts
+        self.client.login(email='owner@example.com', password='StrongPassword123!')
+        resp_owner = self.client.get(port_url)
+        owner_posts = list(resp_owner.context['portfolio_posts'])
+        self.assertIn(pub_post, owner_posts)
+        self.assertIn(conn_post, owner_posts)
+        self.assertIn(priv_post, owner_posts)
+
+        # Non-connected viewer can only view public post
+        self.client.login(email='viewer@example.com', password='StrongPassword123!')
+        resp_viewer = self.client.get(port_url)
+        viewer_posts = list(resp_viewer.context['portfolio_posts'])
+        self.assertIn(pub_post, viewer_posts)
+        self.assertNotIn(conn_post, viewer_posts)
+        self.assertNotIn(priv_post, viewer_posts)
+
+        # Viewer cannot delete user1's post (server-side check returns 404)
+        delete_post_url = reverse('posts:delete', kwargs={'pk': pub_post.pk})
+        del_resp = self.client.post(delete_post_url)
+        self.assertEqual(del_resp.status_code, 404)
+        self.assertTrue(Post.objects.filter(pk=pub_post.pk).exists())
+
+    def test_portfolio_post_likes_comments_and_deletion(self):
+        post = Post.objects.create(author=self.user1, content='Interactivity Post')
+
+        # Viewer likes post
+        self.client.login(email='viewer@example.com', password='StrongPassword123!')
+        like_url = reverse('posts:like_toggle', kwargs={'pk': post.pk})
+        like_resp = self.client.post(like_url)
+        self.assertEqual(like_resp.status_code, 200)
+        self.assertEqual(post.likes.count(), 1)
+
+        # Viewer comments on post
+        comment_url = reverse('posts:comment_create', kwargs={'pk': post.pk})
+        comm_resp = self.client.post(comment_url, {'content': 'Great update!'})
+        self.assertEqual(comm_resp.status_code, 200)
+        self.assertEqual(post.comments.count(), 1)
+
+        # Owner deletes post
+        self.client.login(email='owner@example.com', password='StrongPassword123!')
+        delete_url = reverse('posts:delete', kwargs={'pk': post.pk})
+        del_resp = self.client.post(delete_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(del_resp.status_code, 200)
+        self.assertFalse(Post.objects.filter(pk=post.pk).exists())
+
+        # Post automatically disappears from portfolio posts
+        port_url = reverse('portfolio:portfolio_detail', kwargs={'username': self.user1.username})
+        port_resp = self.client.get(port_url)
+        self.assertNotIn(post, list(port_resp.context['portfolio_posts']))
+
+    def test_empty_portfolio_posts_state(self):
+        port_url = reverse('portfolio:portfolio_detail', kwargs={'username': self.user1.username})
+        resp = self.client.get(port_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.context['portfolio_posts']), 0)
+        self.assertContains(resp, "No posts yet")
+
+

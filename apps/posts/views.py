@@ -174,5 +174,7 @@ class PostDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         post = get_object_or_404(Post, pk=pk, author=request.user)
         post.delete()
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         messages.success(request, "Post deleted successfully!")
         return redirect('posts:feed')

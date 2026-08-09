@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from .models import Project, ProjectImage, ProjectLike, ProjectComment, Certificate, ProjectView
 from .forms import ProjectForm, ProjectCommentForm, CertificateForm
 from apps.profiles.models import Skill
+from apps.posts.models import Post
 
 User = get_user_model()
 
@@ -94,6 +95,9 @@ class PortfolioDetailView(View):
         # Determine which projects the viewer is allowed to see
         if request.user == user:
             projects = user.projects.all().prefetch_related('technologies', 'likes', 'comments')
+            portfolio_posts = user.posts.all().select_related(
+                'author', 'author__profile'
+            ).prefetch_related('likes', 'comments', 'saved_by').order_by('-created_at')
         else:
             from django.db.models import Q
             if request.user.is_authenticated:
@@ -104,12 +108,18 @@ class PortfolioDetailView(View):
                 ).exists()
                 if is_connected:
                     allowed_visibilities = [Project.Visibility.PUBLIC, Project.Visibility.CONNECTIONS]
+                    allowed_post_visibilities = [Post.Visibility.PUBLIC, Post.Visibility.CONNECTIONS]
                 else:
                     allowed_visibilities = [Project.Visibility.PUBLIC]
+                    allowed_post_visibilities = [Post.Visibility.PUBLIC]
             else:
                 allowed_visibilities = [Project.Visibility.PUBLIC]
+                allowed_post_visibilities = [Post.Visibility.PUBLIC]
             
             projects = user.projects.filter(visibility__in=allowed_visibilities).prefetch_related('technologies', 'likes', 'comments')
+            portfolio_posts = user.posts.filter(visibility__in=allowed_post_visibilities).select_related(
+                'author', 'author__profile'
+            ).prefetch_related('likes', 'comments', 'saved_by').order_by('-created_at')
         
         # Divide into featured and regular projects
         featured_projects = projects.filter(is_featured=True)
@@ -128,11 +138,22 @@ class PortfolioDetailView(View):
         # Fetch UserSkills for the portfolio owner
         user_skills = user.userskill_set.all().select_related('skill')
 
+        # Gather liked and saved post sets for the requesting user
+        if request.user.is_authenticated:
+            liked_post_ids = set(request.user.likes.values_list('post_id', flat=True))
+            saved_post_ids = set(request.user.saved_posts.values_list('post_id', flat=True))
+        else:
+            liked_post_ids = set()
+            saved_post_ids = set()
+
         return render(request, self.template_name, {
             'portfolio_user': user,
             'profile': getattr(user, 'profile', None),
             'featured_projects': featured_projects,
             'all_projects': regular_projects,
+            'portfolio_posts': portfolio_posts,
+            'liked_post_ids': liked_post_ids,
+            'saved_post_ids': saved_post_ids,
             'total_projects': total_projects,
             'total_likes': total_likes,
             'used_skills': used_skills,
