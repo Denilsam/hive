@@ -421,9 +421,10 @@ class AuthenticationSystemTests(TestCase):
         self.assertRedirects(login_response, notif_url, fetch_redirect_response=False)
 
     def test_all_account_types_registration(self):
-        account_types = ['STUDENT', 'CREATOR', 'FREELANCER', 'ORGANIZATION']
+        """Allowed public account types can register and normalize properly."""
+        account_types = ['student', 'creator', 'freelancer', 'STUDENT', 'CREATOR', 'FREELANCER']
         for i, acc_type in enumerate(account_types):
-            email = f"user_{acc_type.lower()}@example.com"
+            email = f"user_{acc_type.lower()}_{i}@example.com"
             data = {
                 'first_name': 'Test',
                 'last_name': 'User',
@@ -435,7 +436,68 @@ class AuthenticationSystemTests(TestCase):
             response = self.client.post(self.register_url, data)
             self.assertEqual(response.status_code, 302, f"Failed for account_type {acc_type}")
             user = User.objects.get(email=email)
-            self.assertEqual(user.account_type, acc_type)
+            self.assertEqual(user.account_type, acc_type.upper())
+
+    def test_student_can_register(self):
+        """Student account type can successfully self-register on public signup."""
+        data = self.user_data.copy()
+        data['email'] = 'student_reg@example.com'
+        data['account_type'] = 'student'
+        response = self.client.post(self.register_url, data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='student_reg@example.com')
+        self.assertEqual(user.account_type, 'STUDENT')
+
+    def test_creator_can_register(self):
+        """Creator account type can successfully self-register on public signup."""
+        data = self.user_data.copy()
+        data['email'] = 'creator_reg@example.com'
+        data['account_type'] = 'creator'
+        response = self.client.post(self.register_url, data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='creator_reg@example.com')
+        self.assertEqual(user.account_type, 'CREATOR')
+
+    def test_freelancer_can_register(self):
+        """Freelancer account type can successfully self-register on public signup."""
+        data = self.user_data.copy()
+        data['email'] = 'freelancer_reg@example.com'
+        data['account_type'] = 'freelancer'
+        response = self.client.post(self.register_url, data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='freelancer_reg@example.com')
+        self.assertEqual(user.account_type, 'FREELANCER')
+
+    def test_organization_is_not_displayed_on_public_signup(self):
+        """Organization option is completely absent from the visible signup UI and form choices."""
+        response = self.client.get(self.register_url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Verify Organization radio and value are completely omitted from template markup
+        self.assertNotIn('value="ORGANIZATION"', content)
+        self.assertNotIn('value="organization"', content)
+        self.assertNotIn('id="type_org"', content)
+
+        # Verify only the 3 canonical choices are displayed
+        self.assertIn('Student', content)
+        self.assertIn('Creator', content)
+        self.assertIn('Freelancer', content)
+
+        # Form choices must strictly be Student, Creator, Freelancer
+        form_choices = [c[0] for c in response.context['form'].fields['account_type'].choices]
+        self.assertEqual(form_choices, ['student', 'creator', 'freelancer'])
+
+    def test_organization_submitted_manually_to_public_signup_is_rejected(self):
+        """Server-side validation strictly rejects organization when submitted manually to public signup."""
+        for org_val in ['organization', 'ORGANIZATION', 'Organization']:
+            data = self.user_data.copy()
+            data['email'] = f"rejected_{org_val.lower()}@example.com"
+            data['account_type'] = org_val
+            response = self.client.post(self.register_url, data)
+            self.assertEqual(response.status_code, 200, f"Expected 200 for rejected {org_val}")
+            self.assertIn('account_type', response.context['form'].errors)
+            self.assertFalse(User.objects.filter(email=data['email']).exists())
 
     def test_invalid_account_type_rejected(self):
         invalid_data = self.user_data.copy()
@@ -480,6 +542,7 @@ class AuthenticationSystemTests(TestCase):
             is_verified=True
         )
         self.assertEqual(org_user.account_type, 'ORGANIZATION')
+        self.assertEqual(org_user.get_account_type_display(), 'Organization')
         login_res = self.client.post(self.login_url, {
             'email': 'existing_org@example.com',
             'password': 'StrongPassword123!'

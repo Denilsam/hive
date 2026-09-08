@@ -7,6 +7,31 @@ from django.core.exceptions import ValidationError
 User = get_user_model()
 
 
+PUBLIC_REGISTRATION_ACCOUNT_TYPES = [
+    ('student', 'Student'),
+    ('creator', 'Creator'),
+    ('freelancer', 'Freelancer'),
+]
+
+
+class PublicAccountTypeChoiceField(forms.ChoiceField):
+    """
+    Choice field for public self-registration.
+    Accepts canonical types (student, creator, freelancer), normalizes case,
+    and rejects organization or other unauthorized roles.
+    """
+    def to_python(self, value):
+        val = super().to_python(value)
+        if isinstance(val, str):
+            return val.strip().lower()
+        return val
+
+    def valid_value(self, value):
+        if isinstance(value, str):
+            value = value.strip().lower()
+        return super().valid_value(value)
+
+
 class RegisterForm(forms.ModelForm):
     first_name = forms.CharField(
         max_length=30,
@@ -31,13 +56,8 @@ class RegisterForm(forms.ModelForm):
             'placeholder': 'john.doe@example.com'
         })
     )
-    account_type = forms.ChoiceField(
-        choices=[
-            ('STUDENT', 'Student'),
-            ('CREATOR', 'Creator'),
-            ('FREELANCER', 'Freelancer'),
-            ('ORGANIZATION', 'Organization')
-        ],
+    account_type = PublicAccountTypeChoiceField(
+        choices=PUBLIC_REGISTRATION_ACCOUNT_TYPES,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white/50 text-slate-800 transition-all'
         })
@@ -65,6 +85,22 @@ class RegisterForm(forms.ModelForm):
         if User.objects.filter(email=email).exists():
             raise ValidationError("A user with this email address already exists.")
         return email
+
+    def clean_account_type(self):
+        acc_type = self.cleaned_data.get('account_type', '')
+        if isinstance(acc_type, str):
+            acc_type = acc_type.strip().lower()
+        if acc_type in ['organization', 'admin']:
+            raise ValidationError("Organization registration is not available on public signup.")
+
+        canonical_map = {
+            'student': User.AccountType.STUDENT,
+            'creator': User.AccountType.CREATOR,
+            'freelancer': User.AccountType.FREELANCER,
+        }
+        if acc_type not in canonical_map:
+            raise ValidationError("Select a valid choice. That choice is not one of the available choices.")
+        return canonical_map[acc_type]
 
     def clean(self):
         cleaned_data = super().clean()

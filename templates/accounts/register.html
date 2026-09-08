@@ -132,29 +132,23 @@
         <!-- Account type -->
         <div>
           <label class="auth-form-label">I am a…</label>
-          <div class="auth-account-type-grid">
-            <input type="radio" name="account_type" id="type_student" value="STUDENT" class="auth-type-option" checked>
+          <div class="auth-account-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <input type="radio" name="account_type" id="type_student" value="student" class="auth-type-option" checked>
             <label for="type_student" class="auth-type-label">
               <span class="auth-type-emoji">🎓</span>
               <span class="auth-type-name">Student</span>
             </label>
 
-            <input type="radio" name="account_type" id="type_creator" value="CREATOR" class="auth-type-option">
+            <input type="radio" name="account_type" id="type_creator" value="creator" class="auth-type-option">
             <label for="type_creator" class="auth-type-label">
               <span class="auth-type-emoji">🎨</span>
               <span class="auth-type-name">Creator</span>
             </label>
 
-            <input type="radio" name="account_type" id="type_freelancer" value="FREELANCER" class="auth-type-option">
+            <input type="radio" name="account_type" id="type_freelancer" value="freelancer" class="auth-type-option">
             <label for="type_freelancer" class="auth-type-label">
               <span class="auth-type-emoji">💼</span>
               <span class="auth-type-name">Freelancer</span>
-            </label>
-
-            <input type="radio" name="account_type" id="type_org" value="ORGANIZATION" class="auth-type-option">
-            <label for="type_org" class="auth-type-label">
-              <span class="auth-type-emoji">🏢</span>
-              <span class="auth-type-name">Organization</span>
             </label>
           </div>
           {% if form.account_type.errors %}
