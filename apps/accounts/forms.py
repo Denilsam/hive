@@ -114,7 +114,7 @@ class RegisterForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password'])
-        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if getattr(settings, 'ENABLE_EMAIL_OTP', False):
             # Set user inactive until email is verified
             user.is_active = False
             user.is_verified = False

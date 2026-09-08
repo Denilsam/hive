@@ -772,6 +772,136 @@ class AuthenticationSystemTests(TestCase):
         self.assertRedirects(res, self.login_url)
         self.assertEqual(len(mail.outbox), 0)
 
+    # =========================================================================
+    # Explicit Test Coverage for OTP Disabled vs OTP Enabled (Requirement 15)
+    # =========================================================================
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_otp_disabled_student_creator_freelancer_registration_and_immediate_login(self):
+        """When OTP is disabled: Student, Creator, Freelancer register without OTP/email and log in immediately."""
+        from apps.accounts.models import EmailOTP
+
+        for role in ['student', 'creator', 'freelancer']:
+            self.client.logout()
+            mail.outbox.clear()
+            email = f"user_direct_{role}@example.com"
+            password = "StrongPassword123!"
+            data = {
+                'first_name': 'Test',
+                'last_name': 'Role',
+                'email': email,
+                'account_type': role,
+                'password': password,
+                'confirm_password': password
+            }
+            # 1. Post to public signup
+            res = self.client.post(self.register_url, data)
+            self.assertEqual(res.status_code, 302)
+            # 2. Redirects to login, not OTP verification page
+            self.assertRedirects(res, self.login_url)
+
+            # 3. No OTP email is sent
+            self.assertEqual(len(mail.outbox), 0)
+
+            # 4. User is marked active and verified
+            user = User.objects.get(email=email)
+            self.assertTrue(user.is_active)
+            self.assertTrue(user.is_verified)
+            self.assertEqual(user.account_type, role.upper())
+
+            # 5. No EmailOTP record is created in database
+            self.assertEqual(EmailOTP.objects.filter(user=user).count(), 0)
+
+            # 6. User can log in immediately
+            login_res = self.client.post(self.login_url, {
+                'email': email,
+                'password': password
+            })
+            self.assertEqual(login_res.status_code, 302)
+            self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+    @override_settings(ENABLE_EMAIL_OTP=True)
+    def test_otp_enabled_full_flow_including_invalid_expired_and_resend(self):
+        """When OTP is enabled: 6-digit OTP is generated/sent, invalid/expired OTPs are handled, resend works, valid OTP verifies."""
+        import re
+        from apps.accounts.models import EmailOTP
+        from datetime import timedelta
+        from django.utils import timezone
+
+        self.client.logout()
+        mail.outbox.clear()
+        email = "otp_full_flow@example.com"
+        password = "StrongPassword123!"
+        data = {
+            'first_name': 'OTP',
+            'last_name': 'User',
+            'email': email,
+            'account_type': 'student',
+            'password': password,
+            'confirm_password': password
+        }
+
+        # 1. Registration redirects to pending verification
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('accounts:verify_email_pending'))
+
+        # User is unverified and inactive
+        user = User.objects.get(email=email)
+        self.assertFalse(user.is_verified)
+        self.assertFalse(user.is_active)
+
+        # 2. OTP is generated and email is sent
+        self.assertEqual(len(mail.outbox), 1)
+        match = re.search(r'Your verification code is:\s*(\d{6})', mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        raw_otp = match.group(1)
+        self.assertEqual(len(raw_otp), 6)
+
+        # 3. Invalid OTP submission is rejected
+        bad_post = self.client.post(reverse('accounts:verify_email_pending'), {'otp': '000000'})
+        self.assertEqual(bad_post.status_code, 302)
+        user.refresh_from_db()
+        self.assertFalse(user.is_verified)
+
+        # 4. Expired OTP handling
+        otp_record = EmailOTP.objects.filter(user=user, is_used=False).first()
+        otp_record.expires_at = timezone.now() - timedelta(minutes=1)
+        otp_record.save(update_fields=['expires_at'])
+        expired_post = self.client.post(reverse('accounts:verify_email_pending'), {'otp': raw_otp})
+        self.assertEqual(expired_post.status_code, 302)
+        user.refresh_from_db()
+        self.assertFalse(user.is_verified)
+
+        # 5. Resend OTP
+        # Simulate elapsed cooldown
+        otp_record.created_at = timezone.now() - timedelta(seconds=65)
+        otp_record.save()
+        resend_res = self.client.post(reverse('accounts:resend_verification'))
+        self.assertEqual(resend_res.status_code, 302)
+        self.assertEqual(len(mail.outbox), 2)
+        match2 = re.search(r'Your verification code is:\s*(\d{6})', mail.outbox[1].body)
+        self.assertIsNotNone(match2)
+        new_otp = match2.group(1)
+
+        # 6. Valid OTP verification succeeds
+        valid_post = self.client.post(reverse('accounts:verify_email_pending'), {'otp': new_otp})
+        self.assertEqual(valid_post.status_code, 302)
+        self.assertRedirects(valid_post, self.login_url)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_verified)
+        self.assertTrue(user.is_active)
+
+        # 7. User can log in
+        login_res = self.client.post(self.login_url, {
+            'email': email,
+            'password': password
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+
 
 
 

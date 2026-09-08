@@ -39,6 +39,9 @@ def send_verification_otp(request, user):
     Generates a 6-digit numeric OTP, hashes and stores it, and sends the raw OTP via email.
     Enforces a 60-second cooldown on sending.
     """
+    if not getattr(settings, 'ENABLE_EMAIL_OTP', False):
+        return False, "Email verification is currently disabled."
+
     last_otp = EmailOTP.objects.filter(user=user).first()
     if last_otp and (timezone.now() - last_otp.created_at).total_seconds() < 60:
         remaining = int(60 - (timezone.now() - last_otp.created_at).total_seconds())
@@ -69,7 +72,7 @@ class RegisterView(FormView):
     form_class = RegisterForm
 
     def get_success_url(self):
-        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if getattr(settings, 'ENABLE_EMAIL_OTP', False):
             return reverse_lazy('accounts:verify_email_pending')
         return reverse_lazy('accounts:login')
 
@@ -86,7 +89,7 @@ class RegisterView(FormView):
 
     def form_valid(self, form):
         user = form.save()
-        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if getattr(settings, 'ENABLE_EMAIL_OTP', False):
             success, msg = send_verification_otp(self.request, user)
             self.request.session['unverified_user_email'] = user.email
             return redirect('accounts:verify_email_pending')
@@ -100,7 +103,7 @@ class VerifyEmailPendingView(View):
     Renders OTP verification page where user submits 6-digit OTP code.
     """
     def get(self, request):
-        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', False):
             messages.info(request, "Email verification is currently disabled. You can log in directly.")
             return redirect('accounts:login')
 
@@ -131,7 +134,7 @@ class VerifyEmailPendingView(View):
         })
 
     def post(self, request):
-        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', False):
             messages.info(request, "Email verification is currently disabled. You can log in directly.")
             return redirect('accounts:login')
 
@@ -191,7 +194,7 @@ class VerifyEmailPendingView(View):
 
 class ResendVerificationView(View):
     def post(self, request):
-        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', False):
             messages.info(request, "Email verification is currently disabled.")
             return redirect('accounts:login')
 
@@ -247,7 +250,7 @@ class LoginView(FormView):
                 return self.form_invalid(form)
 
             if not user.is_verified:
-                if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+                if getattr(settings, 'ENABLE_EMAIL_OTP', False):
                     self.request.session['unverified_user_email'] = email
                     send_verification_otp(self.request, user)
                     messages.error(self.request, "Please verify your email with the 6-digit code before continuing.")
