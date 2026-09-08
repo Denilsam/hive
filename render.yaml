@@ -15,7 +15,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: ENABLE_EMAIL_OTP
-        value: "false"
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: ALLOWED_HOSTS
@@ -24,3 +24,15 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_USE_SSL
+        value: "False"

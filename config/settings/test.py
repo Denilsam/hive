@@ -20,6 +20,9 @@ PASSWORD_HASHERS = [
 # Use in-memory email backend for testing email delivery
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
+# Baseline OTP test coverage
+ENABLE_EMAIL_OTP = True
+
 # Run Celery tasks synchronously (eagerly) during tests
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True

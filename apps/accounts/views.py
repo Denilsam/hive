@@ -89,9 +89,10 @@ class RegisterView(FormView):
         if getattr(settings, 'ENABLE_EMAIL_OTP', True):
             success, msg = send_verification_otp(self.request, user)
             self.request.session['unverified_user_email'] = user.email
+            return redirect('accounts:verify_email_pending')
         else:
             messages.success(self.request, "Account created successfully! You can now log in.")
-        return super().form_valid(form)
+            return redirect('accounts:login')
 
 
 class VerifyEmailPendingView(View):

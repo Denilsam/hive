@@ -83,7 +83,7 @@ class RegisterForm(forms.ModelForm):
             user.is_active = False
             user.is_verified = False
         else:
-            # Direct verification for presentation deployment / when OTP is disabled
+            # Direct verification when OTP is explicitly disabled
             user.is_active = True
             user.is_verified = True
         if commit:
@@ -112,7 +112,7 @@ class ForgotPasswordForm(forms.Form):
         email = self.cleaned_data.get('email').lower()
         try:
             user = User.objects.get(email=email)
-            if getattr(settings, 'ENABLE_EMAIL_OTP', True) and not user.is_verified:
+            if getattr(settings, 'ENABLE_EMAIL_OTP', False) and not user.is_verified:
                 raise ValidationError("Your account is not verified yet. Please verify your email first.")
         except User.DoesNotExist:
             raise ValidationError("No verified account found with this email address.")

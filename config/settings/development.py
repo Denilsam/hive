@@ -7,6 +7,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-connect-secret-key-123
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Email OTP Verification (Default True; can be disabled via ENABLE_EMAIL_OTP=false)
+ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'True').strip().lower() in ('true', '1', 'yes', 't')
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
 
 # PostgreSQL as primary development database (No SQLite fallback)

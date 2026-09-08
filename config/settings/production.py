@@ -47,8 +47,8 @@ SECURE_HSTS_PRELOAD = True
 # CSRF configuration
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
 
-# Email OTP Verification (Default False for presentation deployment, overridable via env)
-ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'False').lower() == 'true'
+# Email OTP Verification (Default True, overridable via env)
+ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'True').strip().lower() in ('true', '1', 'yes', 't')
 
 # Production Email Server
 EMAIL_HOST = os.getenv('EMAIL_HOST')

@@ -170,8 +170,8 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Hive <noreply@hive.com>')
 # Password Reset Token Expiration (1 hour = 3600 seconds)
 PASSWORD_RESET_TIMEOUT = 3600
 
-# Email OTP Verification (Enabled by default; can be disabled via environment variable)
-ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'True').lower() == 'true'
+# Email OTP Verification (Default True; can be disabled via ENABLE_EMAIL_OTP=false)
+ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'True').strip().lower() in ('true', '1', 'yes', 't')
 
 
 # Django Channels Channel Layer (using Redis)

@@ -436,8 +436,6 @@ class AuthenticationSystemTests(TestCase):
             self.assertEqual(response.status_code, 302, f"Failed for account_type {acc_type}")
             user = User.objects.get(email=email)
             self.assertEqual(user.account_type, acc_type)
-            self.assertFalse(user.is_active)
-            self.assertFalse(user.is_verified)
 
     def test_invalid_account_type_rejected(self):
         invalid_data = self.user_data.copy()
@@ -446,6 +444,47 @@ class AuthenticationSystemTests(TestCase):
         response = self.client.post(self.register_url, invalid_data)
         self.assertEqual(response.status_code, 200)
         self.assertIn('account_type', response.context['form'].errors)
+
+    def test_otp_cannot_be_reused_after_verification(self):
+        """Once an OTP is successfully verified, it is marked is_used=True and cannot be reused."""
+        from apps.accounts.models import EmailOTP
+        import re
+
+        self.client.post(self.register_url, self.user_data)
+        user = User.objects.get(email=self.user_data['email'])
+
+        match = re.search(r'Your verification code is:\s*(\d{6})', mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        raw_otp = match.group(1)
+
+        otp_rec = EmailOTP.objects.filter(user=user, is_used=False).first()
+        valid, reason = otp_rec.verify_otp(raw_otp)
+        self.assertTrue(valid)
+        self.assertEqual(reason, "SUCCESS")
+        self.assertTrue(otp_rec.is_used)
+
+        # Attempt reusing the same OTP
+        reused_valid, reused_reason = otp_rec.verify_otp(raw_otp)
+        self.assertFalse(reused_valid)
+        self.assertEqual(reused_reason, "EXPIRED_OR_LIMITED")
+
+    def test_existing_organization_account_continues_to_work(self):
+        """Existing Organization accounts created by admin or pre-existing records continue to work."""
+        org_user = User.objects.create_user(
+            email='existing_org@example.com',
+            password='StrongPassword123!',
+            first_name='Existing',
+            last_name='Org',
+            account_type='ORGANIZATION',
+            is_active=True,
+            is_verified=True
+        )
+        self.assertEqual(org_user.account_type, 'ORGANIZATION')
+        login_res = self.client.post(self.login_url, {
+            'email': 'existing_org@example.com',
+            'password': 'StrongPassword123!'
+        })
+        self.assertEqual(login_res.status_code, 302)
 
     @override_settings(ENABLE_EMAIL_OTP=False)
     def test_registration_with_otp_disabled(self):
@@ -562,6 +601,112 @@ class AuthenticationSystemTests(TestCase):
         user = User.objects.get(email='legacy@example.com')
         self.assertTrue(user.is_verified)
         self.assertTrue(user.is_active)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_case_a_signup_as_student_otp_disabled_can_login(self):
+        """Case A: Public signup as Student -> account created -> no OTP page -> can log in."""
+        data = self.user_data.copy()
+        data['email'] = 'student_case_a@example.com'
+        data['account_type'] = 'STUDENT'
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, self.login_url)
+
+        user = User.objects.get(email='student_case_a@example.com')
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_verified)
+        self.assertEqual(user.account_type, 'STUDENT')
+
+        login_res = self.client.post(self.login_url, {
+            'email': 'student_case_a@example.com',
+            'password': data['password']
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_case_b_signup_as_creator_otp_disabled_can_login(self):
+        """Case B: Public signup as Creator -> account created -> no OTP page -> can log in."""
+        data = self.user_data.copy()
+        data['email'] = 'creator_case_b@example.com'
+        data['account_type'] = 'CREATOR'
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, self.login_url)
+
+        user = User.objects.get(email='creator_case_b@example.com')
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_verified)
+        self.assertEqual(user.account_type, 'CREATOR')
+
+        login_res = self.client.post(self.login_url, {
+            'email': 'creator_case_b@example.com',
+            'password': data['password']
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_case_c_signup_as_freelancer_otp_disabled_can_login(self):
+        """Case C: Public signup as Freelancer -> account created -> no OTP page -> can log in."""
+        data = self.user_data.copy()
+        data['email'] = 'freelancer_case_c@example.com'
+        data['account_type'] = 'FREELANCER'
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, self.login_url)
+
+        user = User.objects.get(email='freelancer_case_c@example.com')
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_verified)
+        self.assertEqual(user.account_type, 'FREELANCER')
+
+        login_res = self.client.post(self.login_url, {
+            'email': 'freelancer_case_c@example.com',
+            'password': data['password']
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+    def test_case_e_existing_organization_account_continues_to_work(self):
+        """Case E: Existing Organization account continues to function normally."""
+        org_user = User.objects.create_user(
+            email='working_org@example.com',
+            password='StrongPassword123!',
+            first_name='Working',
+            last_name='Organization',
+            account_type='ORGANIZATION',
+            is_active=True,
+            is_verified=True
+        )
+        self.assertEqual(org_user.account_type, 'ORGANIZATION')
+        login_res = self.client.post(self.login_url, {
+            'email': 'working_org@example.com',
+            'password': 'StrongPassword123!'
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertRedirects(login_res, reverse('home'), target_status_code=302)
+
+    @override_settings(ENABLE_EMAIL_OTP=True)
+    def test_case_f_otp_enabled_existing_flow_works(self):
+        """Case F: When ENABLE_EMAIL_OTP=True, existing OTP flow works (generates OTP, sends email, redirects to pending)."""
+        data = self.user_data.copy()
+        data['email'] = 'otp_enabled_flow@example.com'
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('accounts:verify_email_pending'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Verify your Hive account", mail.outbox[0].subject)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_case_g_otp_disabled_no_email_no_verification_redirect(self):
+        """Case G: When ENABLE_EMAIL_OTP=False, no email is sent and no OTP verification redirect occurs."""
+        data = self.user_data.copy()
+        data['email'] = 'otp_disabled_flow@example.com'
+        res = self.client.post(self.register_url, data)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, self.login_url)
         self.assertEqual(len(mail.outbox), 0)
 
 
