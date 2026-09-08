@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -77,9 +78,14 @@ class RegisterForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password'])
-        # Set user inactive until email is verified
-        user.is_active = False
-        user.is_verified = False
+        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            # Set user inactive until email is verified
+            user.is_active = False
+            user.is_verified = False
+        else:
+            # Direct verification for presentation deployment / when OTP is disabled
+            user.is_active = True
+            user.is_verified = True
         if commit:
             user.save()
         return user
@@ -106,7 +112,7 @@ class ForgotPasswordForm(forms.Form):
         email = self.cleaned_data.get('email').lower()
         try:
             user = User.objects.get(email=email)
-            if not user.is_verified:
+            if getattr(settings, 'ENABLE_EMAIL_OTP', True) and not user.is_verified:
                 raise ValidationError("Your account is not verified yet. Please verify your email first.")
         except User.DoesNotExist:
             raise ValidationError("No verified account found with this email address.")

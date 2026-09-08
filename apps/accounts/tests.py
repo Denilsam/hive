@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core import mail
@@ -446,6 +446,123 @@ class AuthenticationSystemTests(TestCase):
         response = self.client.post(self.register_url, invalid_data)
         self.assertEqual(response.status_code, 200)
         self.assertIn('account_type', response.context['form'].errors)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_registration_with_otp_disabled(self):
+        """When ENABLE_EMAIL_OTP=False: registration completes, auto-verifies, sends no email, redirects to login."""
+        response = self.client.post(self.register_url, self.user_data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.login_url)
+
+        # No email sent
+        self.assertEqual(len(mail.outbox), 0)
+
+        # User is active and verified immediately
+        user = User.objects.get(email=self.user_data['email'])
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_verified)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_login_after_registration_with_otp_disabled(self):
+        """User can log in normally right after registering when OTP is disabled."""
+        self.client.post(self.register_url, self.user_data)
+        response = self.client.post(self.login_url, {
+            'email': self.user_data['email'],
+            'password': self.user_data['password']
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('home'), target_status_code=302)
+
+    @override_settings(ENABLE_EMAIL_OTP=True)
+    def test_registration_with_otp_enabled(self):
+        """When ENABLE_EMAIL_OTP=True: registration creates unverified user, sends email, redirects to pending OTP."""
+        response = self.client.post(self.register_url, self.user_data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('accounts:verify_email_pending'))
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Verify your Hive account", mail.outbox[0].subject)
+
+        user = User.objects.get(email=self.user_data['email'])
+        self.assertFalse(user.is_active)
+        self.assertFalse(user.is_verified)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_verify_pending_redirects_when_otp_disabled(self):
+        """Direct access to verify pending page redirects to login when OTP is disabled."""
+        get_res = self.client.get(reverse('accounts:verify_email_pending'))
+        self.assertEqual(get_res.status_code, 302)
+        self.assertRedirects(get_res, self.login_url)
+
+        post_res = self.client.post(reverse('accounts:verify_email_pending'), {'otp': '123456'})
+        self.assertEqual(post_res.status_code, 302)
+        self.assertRedirects(post_res, self.login_url)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_resend_verification_redirects_when_otp_disabled(self):
+        """Resend verification redirects to login without error when OTP is disabled."""
+        post_res = self.client.post(reverse('accounts:resend_verification'))
+        self.assertEqual(post_res.status_code, 302)
+        self.assertRedirects(post_res, self.login_url)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_invalid_registration_data_with_otp_disabled(self):
+        """Invalid registration data is still rejected with OTP disabled."""
+        bad_data = self.user_data.copy()
+        bad_data['confirm_password'] = 'DifferentPassword123!'
+        response = self.client.post(self.register_url, bad_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('confirm_password', response.context['form'].errors)
+        self.assertFalse(User.objects.filter(email=self.user_data['email']).exists())
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_duplicate_email_registration_blocked_with_otp_disabled(self):
+        """Duplicate emails are still blocked with OTP disabled."""
+        User.objects.create_user(email=self.user_data['email'], password='InitialPassword123!', first_name='A', last_name='B')
+        response = self.client.post(self.register_url, self.user_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('email', response.context['form'].errors)
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_deactivated_user_blocked_when_otp_disabled(self):
+        """Deactivated users cannot log in even when OTP is disabled."""
+        User.objects.create_user(
+            email='deactivated@example.com',
+            password='StrongPassword123!',
+            first_name='Deactivated',
+            last_name='User',
+            account_type='STUDENT',
+            is_active=False,
+            is_verified=True
+        )
+        response = self.client.post(self.login_url, {
+            'email': 'deactivated@example.com',
+            'password': 'StrongPassword123!'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("deactivated", response.content.decode('utf-8').lower())
+
+    @override_settings(ENABLE_EMAIL_OTP=False)
+    def test_unverified_legacy_user_auto_verifies_on_login(self):
+        """Legacy unverified user logging in with correct credentials becomes verified when OTP is disabled."""
+        User.objects.create_user(
+            email='legacy@example.com',
+            password='StrongPassword123!',
+            first_name='Legacy',
+            last_name='User',
+            account_type='STUDENT',
+            is_active=False,
+            is_verified=False
+        )
+        response = self.client.post(self.login_url, {
+            'email': 'legacy@example.com',
+            'password': 'StrongPassword123!'
+        })
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='legacy@example.com')
+        self.assertTrue(user.is_verified)
+        self.assertTrue(user.is_active)
+        self.assertEqual(len(mail.outbox), 0)
 
 
 

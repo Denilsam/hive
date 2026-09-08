@@ -47,14 +47,22 @@ SECURE_HSTS_PRELOAD = True
 # CSRF configuration
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
 
+# Email OTP Verification (Default False for presentation deployment, overridable via env)
+ENABLE_EMAIL_OTP = os.getenv('ENABLE_EMAIL_OTP', 'False').lower() == 'true'
+
 # Production Email Server
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD and EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    # Graceful fallback when SMTP credentials are not configured
+    EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
 
 # Cloudinary Storage integration for production uploads
 CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')

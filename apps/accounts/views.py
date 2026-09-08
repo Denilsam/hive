@@ -67,7 +67,11 @@ def send_verification_otp(request, user):
 class RegisterView(FormView):
     template_name = 'accounts/register.html'
     form_class = RegisterForm
-    success_url = reverse_lazy('accounts:verify_email_pending')
+
+    def get_success_url(self):
+        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            return reverse_lazy('accounts:verify_email_pending')
+        return reverse_lazy('accounts:login')
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
@@ -82,8 +86,11 @@ class RegisterView(FormView):
 
     def form_valid(self, form):
         user = form.save()
-        success, msg = send_verification_otp(self.request, user)
-        self.request.session['unverified_user_email'] = user.email
+        if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            success, msg = send_verification_otp(self.request, user)
+            self.request.session['unverified_user_email'] = user.email
+        else:
+            messages.success(self.request, "Account created successfully! You can now log in.")
         return super().form_valid(form)
 
 
@@ -92,6 +99,10 @@ class VerifyEmailPendingView(View):
     Renders OTP verification page where user submits 6-digit OTP code.
     """
     def get(self, request):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            messages.info(request, "Email verification is currently disabled. You can log in directly.")
+            return redirect('accounts:login')
+
         email = request.session.get('unverified_user_email')
         if not email:
             messages.error(request, "Please sign up or log in to verify your email.")
@@ -119,6 +130,10 @@ class VerifyEmailPendingView(View):
         })
 
     def post(self, request):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            messages.info(request, "Email verification is currently disabled. You can log in directly.")
+            return redirect('accounts:login')
+
         email = request.session.get('unverified_user_email') or request.POST.get('email', '').strip().lower()
         if not email:
             messages.error(request, "Session expired. Please log in to request a verification code.")
@@ -175,6 +190,10 @@ class VerifyEmailPendingView(View):
 
 class ResendVerificationView(View):
     def post(self, request):
+        if not getattr(settings, 'ENABLE_EMAIL_OTP', True):
+            messages.info(request, "Email verification is currently disabled.")
+            return redirect('accounts:login')
+
         email = request.session.get('unverified_user_email') or request.POST.get('email', '').strip().lower()
         if not email:
             messages.error(request, "Session expired. Please log in to verify your email.")
@@ -222,25 +241,34 @@ class LoginView(FormView):
         user = authenticate(self.request, username=email, password=password)
         
         if user is not None:
+            if not user.is_active and user.is_verified:
+                messages.error(self.request, "Your account has been deactivated. Please contact support.")
+                return self.form_invalid(form)
+
             if not user.is_verified:
-                self.request.session['unverified_user_email'] = email
-                send_verification_otp(self.request, user)
-                messages.error(self.request, "Please verify your email with the 6-digit code before continuing.")
-                return redirect('accounts:verify_email_pending')
-            else:
-                login(self.request, user)
-                messages.success(self.request, f"Welcome back, {user.first_name}!")
-                
-                # Check if account type is set
-                if not user.account_type:
-                    return redirect('accounts:select_account_type')
-                
-                # Redirect to next parameter if present and safe, otherwise default to home
-                next_url = self.request.GET.get('next') or self.request.POST.get('next')
-                if next_url and next_url.startswith('/'):
-                    return redirect(next_url)
-                
-                return redirect('home')
+                if getattr(settings, 'ENABLE_EMAIL_OTP', True):
+                    self.request.session['unverified_user_email'] = email
+                    send_verification_otp(self.request, user)
+                    messages.error(self.request, "Please verify your email with the 6-digit code before continuing.")
+                    return redirect('accounts:verify_email_pending')
+                else:
+                    user.is_verified = True
+                    user.is_active = True
+                    user.save(update_fields=['is_verified', 'is_active'])
+
+            login(self.request, user)
+            messages.success(self.request, f"Welcome back, {user.first_name}!")
+            
+            # Check if account type is set
+            if not user.account_type:
+                return redirect('accounts:select_account_type')
+            
+            # Redirect to next parameter if present and safe, otherwise default to home
+            next_url = self.request.GET.get('next') or self.request.POST.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            
+            return redirect('home')
         else:
             messages.error(self.request, "Invalid email or password.")
             return self.form_invalid(form)
