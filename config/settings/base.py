@@ -18,9 +18,6 @@ INSTALLED_APPS = [
     # Daphne must be loaded before staticfiles for Channels
     'daphne',
     
-    # Cloudinary Storage (must be loaded before staticfiles)
-    'cloudinary_storage',
-    
     # Core Django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -28,6 +25,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Third-party apps & Cloudinary (for Media storage only)
+    'cloudinary_storage',
     'cloudinary',
     'django.contrib.sites',  # required by django-allauth
     
@@ -147,6 +147,9 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
+
+# Backwards-compatibility setting alias for legacy packages expecting deprecated settings
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
