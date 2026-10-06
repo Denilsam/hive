@@ -40,3 +40,8 @@ from .notification_views import (
     NotificationMarkReadView,
     NotificationReadAllView,
 )
+from .chat_views import (
+    ConversationListCreateView,
+    ConversationDetailView,
+    MessageListCreateView,
+)

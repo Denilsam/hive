@@ -53,4 +53,10 @@ urlpatterns = [
     path('v1/notifications/', views.NotificationListView.as_view(), name='notifications_list'),
     path('v1/notifications/<int:id>/read/', views.NotificationMarkReadView.as_view(), name='notification_mark_read'),
     path('v1/notifications/read-all/', views.NotificationReadAllView.as_view(), name='notifications_read_all'),
+
+    # Mobile Chat Endpoints (Phase 2C)
+    path('v1/chat/conversations/', views.ConversationListCreateView.as_view(), name='chat_conversations_list'),
+    path('v1/chat/conversations/start/', views.ConversationListCreateView.as_view(), name='chat_conversations_start'),
+    path('v1/chat/conversations/<int:id>/', views.ConversationDetailView.as_view(), name='chat_conversation_detail'),
+    path('v1/chat/conversations/<int:id>/messages/', views.MessageListCreateView.as_view(), name='chat_messages_list_create'),
 ]

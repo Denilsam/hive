@@ -201,3 +201,146 @@ class ChatSystemTests(TestCase):
         self.assertTemplateUsed(response_room, 'chat/chat_room.html')
         self.assertContains(response_room, inbox_url)
 
+
+from channels.testing import WebsocketCommunicator
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from datetime import timedelta
+from apps.connections.models import Follow
+from config.asgi import application
+
+
+class Phase2CChatTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = User.objects.create_user(
+            email='alice.chat@example.com',
+            password='Password123!',
+            first_name='Alice',
+            last_name='Chat',
+            is_active=True
+        )
+        self.user2 = User.objects.create_user(
+            email='bob.chat@example.com',
+            password='Password123!',
+            first_name='Bob',
+            last_name='Chat',
+            is_active=True
+        )
+        self.user3 = User.objects.create_user(
+            email='eve.chat@example.com',
+            password='Password123!',
+            first_name='Eve',
+            last_name='Hacker',
+            is_active=True
+        )
+
+        # Establish mutual follow between User1 and User2
+        Follow.objects.create(follower=self.user1, following=self.user2)
+        Follow.objects.create(follower=self.user2, following=self.user1)
+
+        self.conv, _ = Conversation.get_or_create_conversation(self.user1, self.user2)
+
+        self.refresh1 = RefreshToken.for_user(self.user1)
+        self.access1 = str(self.refresh1.access_token)
+
+        self.refresh3 = RefreshToken.for_user(self.user3)
+        self.access3 = str(self.refresh3.access_token)
+
+    def auth_client(self, token):
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        return client
+
+    def test_rest_chat_conversations_list_and_start(self):
+        client = self.auth_client(self.access1)
+        list_url = reverse('api:chat_conversations_list')
+        res1 = client.get(list_url)
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(len(res1.data['results']), 1)
+
+        # Start conversation with User3
+        start_url = reverse('api:chat_conversations_start')
+        res2 = client.post(start_url, {'user_id': self.user3.id}, format='json')
+        self.assertEqual(res2.status_code, 201)
+        self.assertIn('id', res2.data)
+
+    def test_rest_chat_messages_history_and_send(self):
+        client = self.auth_client(self.access1)
+        msg_url = reverse('api:chat_messages_list_create', kwargs={'id': self.conv.id})
+
+        # Send message via REST
+        res_send = client.post(msg_url, {'content': 'Hello Bob from REST'}, format='json')
+        self.assertEqual(res_send.status_code, 201)
+        self.assertEqual(res_send.data['content'], 'Hello Bob from REST')
+
+        # Read message history via REST
+        res_hist = client.get(msg_url)
+        self.assertEqual(res_hist.status_code, 200)
+        self.assertEqual(len(res_hist.data['results']), 1)
+
+    def test_rest_unauthorized_conversation_access(self):
+        client3 = self.auth_client(self.access3)
+        msg_url = reverse('api:chat_messages_list_create', kwargs={'id': self.conv.id})
+
+        # Eve tries to read Alice/Bob messages -> 403
+        res_read = client3.get(msg_url)
+        self.assertEqual(res_read.status_code, 403)
+
+        # Eve tries to send message in Alice/Bob chat -> 403
+        res_send = client3.post(msg_url, {'content': 'Hacking message'}, format='json')
+        self.assertEqual(res_send.status_code, 403)
+
+    async def test_websocket_jwt_connection_success(self):
+        communicator = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token={self.access1}")
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+        await communicator.disconnect()
+
+    async def test_websocket_invalid_token_rejection(self):
+        communicator = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token=invalid_token_string")
+        connected, _ = await communicator.connect()
+        self.assertFalse(connected)
+
+    async def test_websocket_expired_token_rejection(self):
+        expired = AccessToken.for_user(self.user1)
+        expired.set_exp(lifetime=-timedelta(days=1))
+        communicator = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token={str(expired)}")
+        connected, _ = await communicator.connect()
+        self.assertFalse(connected)
+
+    async def test_websocket_non_member_rejection(self):
+        communicator = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token={self.access3}")
+        connected, _ = await communicator.connect()
+        self.assertFalse(connected)
+
+    async def test_websocket_send_and_receive_broadcast(self):
+        communicator1 = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token={self.access1}")
+        connected1, _ = await communicator1.connect()
+        self.assertTrue(connected1)
+
+        # Send message via WebSocket
+        await communicator1.send_json_to({"message": "Hello from WebSocket!"})
+
+        # Receive broadcast
+        response = await communicator1.receive_json_from()
+        self.assertEqual(response['message'], 'Hello from WebSocket!')
+        self.assertEqual(response['sender_email'], 'alice.chat@example.com')
+
+        await communicator1.disconnect()
+
+    async def test_websocket_malformed_payload_handling(self):
+        communicator = WebsocketCommunicator(application, f"/ws/chat/{self.conv.id}/?token={self.access1}")
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        # Send malformed string instead of JSON
+        await communicator.send_to("Not a valid JSON string")
+        # Ensure connection stays alive without crashing
+        await communicator.send_json_to({"message": "Valid after malformed"})
+        response = await communicator.receive_json_from()
+        self.assertEqual(response['message'], 'Valid after malformed')
+
+        await communicator.disconnect()
+
+

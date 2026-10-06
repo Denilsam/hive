@@ -34,3 +34,8 @@ from .marketplace_serializers import (
 from .notification_serializers import (
     NotificationSerializer,
 )
+from .chat_serializers import (
+    ConversationSerializer,
+    MessageSerializer,
+    StartConversationSerializer,
+)
