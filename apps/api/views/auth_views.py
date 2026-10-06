@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from apps.accounts.views import send_verification_otp
 
-from .serializers import (
+from apps.api.serializers import (
     UserSerializer,
     MobileRegisterSerializer,
     MobileLoginSerializer,
@@ -25,10 +25,6 @@ def api_root(request):
 
 
 class MobileRegisterView(APIView):
-    """
-    POST /api/v1/auth/register/
-    Registers a new Hive member account for the mobile application.
-    """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -58,10 +54,6 @@ class MobileRegisterView(APIView):
 
 
 class MobileTokenObtainPairView(APIView):
-    """
-    POST /api/v1/auth/token/
-    Authenticates a user via email and password and returns JWT access and refresh tokens.
-    """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -80,10 +72,6 @@ class MobileTokenObtainPairView(APIView):
 
 
 class CurrentUserView(APIView):
-    """
-    GET /api/v1/auth/me/
-    Returns authenticated user profile details.
-    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -92,10 +80,6 @@ class CurrentUserView(APIView):
 
 
 class MobileOTPVerifyView(APIView):
-    """
-    POST /api/v1/auth/otp/verify/
-    Verifies a user's 6-digit email OTP and returns JWT tokens upon success.
-    """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
