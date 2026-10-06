@@ -15,14 +15,21 @@ services:
       - key: DEBUG
         value: "False"
       - key: ENABLE_EMAIL_OTP
-        value: "true"
+        value: "false"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: hive-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: hive-redis
+          property: connectionString
       - key: ALLOWED_HOSTS
         sync: false
       - key: CSRF_TRUSTED_ORIGINS
         sync: false
-      - key: REDIS_URL
+      - key: CLOUDINARY_URL
         sync: false
       - key: EMAIL_HOST
         sync: false
@@ -36,3 +43,14 @@ services:
         value: "True"
       - key: EMAIL_USE_SSL
         value: "False"
+
+  - type: redis
+    name: hive-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: hive-postgres
+    databaseName: connect_hive
+    user: connect_user
+    plan: free

@@ -67,6 +67,11 @@ else:
 # Cloudinary Storage integration for production uploads
 CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
 if CLOUDINARY_URL:
+    if 'cloudinary_storage' not in INSTALLED_APPS:
+        INSTALLED_APPS += [
+            'cloudinary_storage',
+            'cloudinary',
+        ]
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
@@ -86,23 +91,26 @@ else:
         },
     }
 
-# Production Channel Layer (Redis)
-REDIS_URL = os.getenv('REDIS_URL', os.getenv('CELERY_BROKER_URL'))
-if REDIS_URL:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [REDIS_URL],
-            },
+# Production Channel Layer (Redis is required for multi-worker / real-time WebSockets on Render)
+REDIS_URL = os.getenv('REDIS_URL')
+if not REDIS_URL:
+    raise ValueError(
+        "The REDIS_URL environment variable must be set in production for Django Channels. "
+        "Provision a Redis instance on Render and add REDIS_URL to the service environment variables."
+    )
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [REDIS_URL],
         },
-    }
-else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+    },
+}
+
+# Celery Configurations in production
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', REDIS_URL)
 
 # Logging
 LOGGING = {

@@ -13,6 +13,7 @@ from apps.accounts.adapters import CustomSocialAccountAdapter
 User = get_user_model()
 
 
+@override_settings(ENABLE_EMAIL_OTP=True)
 class AuthenticationSystemTests(TestCase):
     def setUp(self):
         self.client = Client()
