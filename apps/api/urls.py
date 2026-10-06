@@ -1,17 +1,13 @@
 from django.urls import path
-from django.http import JsonResponse
+from . import views
 
 app_name = 'api'
 
-
-def api_root(request):
-    return JsonResponse({
-        "name": "Hive API",
-        "version": "1.0.0",
-        "description": "Hive skills. Create opportunities."
-    })
-
-
 urlpatterns = [
-    path('', api_root, name='root'),
+    path('', views.api_root, name='root'),
+    path('v1/auth/register/', views.MobileRegisterView.as_view(), name='auth_register'),
+    path('v1/auth/token/', views.MobileTokenObtainPairView.as_view(), name='auth_token_obtain'),
+    path('v1/auth/token/refresh/', views.TokenRefreshView.as_view(), name='auth_token_refresh'),
+    path('v1/auth/me/', views.CurrentUserView.as_view(), name='auth_me'),
+    path('v1/auth/otp/verify/', views.MobileOTPVerifyView.as_view(), name='auth_otp_verify'),
 ]
