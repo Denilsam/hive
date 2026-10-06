@@ -18,6 +18,9 @@ INSTALLED_APPS = [
     # Daphne must be loaded before staticfiles for Channels
     'daphne',
     
+    # Cloudinary Storage (must be loaded before staticfiles)
+    'cloudinary_storage',
+    
     # Core Django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary',
     'django.contrib.sites',  # required by django-allauth
     
     # Third-party apps
@@ -126,11 +130,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Media Storage Configuration: Cloudinary if CLOUDINARY_URL is set, otherwise local FileSystemStorage
 CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
 if CLOUDINARY_URL:
-    if 'cloudinary_storage' not in INSTALLED_APPS:
-        INSTALLED_APPS += [
-            'cloudinary_storage',
-            'cloudinary',
-        ]
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",

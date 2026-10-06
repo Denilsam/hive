@@ -67,11 +67,6 @@ else:
 # Cloudinary Storage integration for production uploads
 CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
 if CLOUDINARY_URL:
-    if 'cloudinary_storage' not in INSTALLED_APPS:
-        INSTALLED_APPS += [
-            'cloudinary_storage',
-            'cloudinary',
-        ]
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",

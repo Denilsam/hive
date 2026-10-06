@@ -352,7 +352,9 @@ class MediaUploadAndStorageTests(TestCase):
         9. Production with CLOUDINARY_URL -> Cloudinary storage backend is configured and used.
         """
         import os
+        import cloudinary
         with patch.dict(os.environ, {'CLOUDINARY_URL': 'cloudinary://123456789:abcdefgh@testhive'}):
+            cloudinary.config(cloud_name='testhive', api_key='123456789', api_secret='abcdefgh')
             from cloudinary_storage.storage import MediaCloudinaryStorage
             storage = MediaCloudinaryStorage()
             fake_public_id = 'posts/images/test_mock_upload'
